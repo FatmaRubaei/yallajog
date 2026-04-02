@@ -9,7 +9,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { i18n } = useTranslation();
-  const isRtl = i18n.language === "ar";
+  const isRtl = i18n.language === "ar" || i18n.language === "he";
 
   return (
     <div className="min-h-screen bg-background">

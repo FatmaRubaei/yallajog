@@ -19,7 +19,7 @@ const queryClient = new QueryClient();
 function RTLHandler() {
   const { i18n } = useTranslation();
   useEffect(() => {
-    const isRtl = i18n.language === "ar";
+    const isRtl = i18n.language === "ar" || i18n.language === "he";
     document.documentElement.dir = isRtl ? "rtl" : "ltr";
     document.documentElement.lang = i18n.language;
     localStorage.setItem("lang", i18n.language);

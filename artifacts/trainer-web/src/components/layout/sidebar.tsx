@@ -10,6 +10,7 @@ import {
   Globe,
   Sun,
   Moon,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,14 +19,26 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/hooks/use-theme";
 
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "ar", label: "عربي" },
+  { code: "he", label: "עברית" },
+];
+
 function NavContent({ onClick }: { onClick?: () => void }) {
   const [location] = useLocation();
   const { t, i18n } = useTranslation();
-  const isRtl = i18n.language === "ar";
+  const isRtl = i18n.language === "ar" || i18n.language === "he";
   const { theme, toggleTheme } = useTheme();
 
   const navigation = [
@@ -37,9 +50,7 @@ function NavContent({ onClick }: { onClick?: () => void }) {
     { name: t("nav.events"), href: "/events", icon: Flag },
   ];
 
-  function toggleLanguage() {
-    i18n.changeLanguage(isRtl ? "en" : "ar");
-  }
+  const currentLang = LANGUAGES.find((l) => l.code === i18n.language) ?? LANGUAGES[0];
 
   return (
     <div className="flex h-full flex-col bg-sidebar">
@@ -85,13 +96,27 @@ function NavContent({ onClick }: { onClick?: () => void }) {
             : <Moon className="h-5 w-5 me-3 shrink-0" />}
           {theme === "dark" ? t("common.lightMode") : t("common.darkMode")}
         </button>
-        <button
-          onClick={toggleLanguage}
-          className="flex items-center w-full rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-        >
-          <Globe className="h-5 w-5 me-3 shrink-0" />
-          {isRtl ? t("common.switchToEnglish") : t("common.switchToArabic")}
-        </button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center w-full rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
+              <Globe className="h-5 w-5 me-3 shrink-0" />
+              {currentLang.label}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align={isRtl ? "end" : "start"} className="w-40">
+            {LANGUAGES.map((lang) => (
+              <DropdownMenuItem
+                key={lang.code}
+                onClick={() => i18n.changeLanguage(lang.code)}
+                className="flex items-center justify-between cursor-pointer"
+              >
+                {lang.label}
+                {i18n.language === lang.code && <Check className="h-4 w-4 text-primary" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
@@ -100,7 +125,7 @@ function NavContent({ onClick }: { onClick?: () => void }) {
 export function Sidebar() {
   const [open, setOpen] = useState(false);
   const { i18n } = useTranslation();
-  const isRtl = i18n.language === "ar";
+  const isRtl = i18n.language === "ar" || i18n.language === "he";
 
   return (
     <>
