@@ -180,6 +180,8 @@
     "close": "إغلاق",
     "openSidebar": "فتح القائمة",
     "switchToArabic": "عربي",
-    "switchToEnglish": "English"
+    "switchToEnglish": "English",
+    "darkMode": "الوضع الداكن",
+    "lightMode": "الوضع الفاتح"
   }
 }

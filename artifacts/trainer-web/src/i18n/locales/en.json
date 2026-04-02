@@ -180,6 +180,8 @@
     "close": "Close",
     "openSidebar": "Open sidebar",
     "switchToArabic": "عربي",
-    "switchToEnglish": "English"
+    "switchToEnglish": "English",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
   }
 }

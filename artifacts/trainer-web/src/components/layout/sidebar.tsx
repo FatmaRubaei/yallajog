@@ -8,6 +8,8 @@ import {
   Flag,
   Menu,
   Globe,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,11 +20,13 @@ import {
 } from "@/components/ui/sheet";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "@/hooks/use-theme";
 
 function NavContent({ onClick }: { onClick?: () => void }) {
   const [location] = useLocation();
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === "ar";
+  const { theme, toggleTheme } = useTheme();
 
   const navigation = [
     { name: t("nav.dashboard"), href: "/", icon: LayoutDashboard },
@@ -71,7 +75,16 @@ function NavContent({ onClick }: { onClick?: () => void }) {
           })}
         </nav>
       </div>
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
+        <button
+          onClick={toggleTheme}
+          className="flex items-center w-full rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+        >
+          {theme === "dark"
+            ? <Sun className="h-5 w-5 me-3 shrink-0" />
+            : <Moon className="h-5 w-5 me-3 shrink-0" />}
+          {theme === "dark" ? t("common.lightMode") : t("common.darkMode")}
+        </button>
         <button
           onClick={toggleLanguage}
           className="flex items-center w-full rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"

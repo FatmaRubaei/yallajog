@@ -2,7 +2,6 @@ import { useGetDashboardSummary, useGetTraineesNeedingAttention, getGetDashboard
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Users, DollarSign, Activity, AlertCircle, Calendar } from "lucide-react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 
 export default function Dashboard() {
@@ -27,10 +26,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="border-s-4 border-s-amber-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{t("dashboard.totalTrainees")}</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalTrainees || 0}</div>
@@ -40,10 +39,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-s-4 border-s-blue-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{t("dashboard.balanceDue")}</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${summary?.totalBalanceDue?.toLocaleString() || "0"}</div>
@@ -51,10 +50,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-s-4 border-s-red-500">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{t("dashboard.weeklyActivity")}</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <Activity className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.traineesWithActivity || 0} / {summary?.activeTrainees || 0}</div>
@@ -62,10 +61,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-s-4 border-s-slate-400">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">{t("dashboard.plannedThisWeek")}</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-slate-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.traineesPlannedThisWeek || 0} / {summary?.activeTrainees || 0}</div>
@@ -75,7 +74,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="col-span-1 border-destructive/20">
+        <Card className="col-span-1 border-s-4 border-s-destructive">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center text-destructive">
               <AlertCircle className="w-5 h-5 me-2" />
