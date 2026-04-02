@@ -12,7 +12,6 @@ const INCLUDE_DIRS = [
   "artifacts/api-server/tsconfig.json",
   "artifacts/trainer-web/src",
   "artifacts/trainer-web/index.html",
-  "artifacts/trainer-web/tsconfig.json",
   "artifacts/trainee-mobile/src",
   "artifacts/trainee-mobile/app",
   "artifacts/trainee-mobile/index.js",
@@ -28,6 +27,7 @@ const INCLUDE_DIRS = [
   "lib/api-client-react/tsconfig.json",
   "package.json",
   "tsconfig.json",
+  "tsconfig.base.json",
 ];
 
 // ── Overridden files ─────────────────────────────────────────────────────────
@@ -205,6 +205,31 @@ const TRAINER_WEB_PACKAGE_JSON = JSON.stringify({
   },
 }, null, 2);
 
+// Standalone trainer-web tsconfig — no extends, no project references needed locally
+const TRAINER_WEB_TSCONFIG = JSON.stringify({
+  compilerOptions: {
+    target: "es2022",
+    lib: ["esnext", "dom", "dom.iterable"],
+    module: "esnext",
+    moduleResolution: "bundler",
+    jsx: "preserve",
+    strict: true,
+    noImplicitAny: true,
+    strictNullChecks: true,
+    skipLibCheck: true,
+    noEmit: true,
+    resolveJsonModule: true,
+    allowImportingTsExtensions: true,
+    isolatedModules: true,
+    types: ["node", "vite/client"],
+    paths: {
+      "@/*": ["./src/*"],
+    },
+  },
+  include: ["src/**/*"],
+  exclude: ["node_modules", "build", "dist"],
+}, null, 2);
+
 // Mac-compatible pnpm workspace
 const WORKSPACE_YAML = `minimumReleaseAge: 1440
 
@@ -317,6 +342,7 @@ router.get("/download-source", (req: Request, res: Response) => {
   archive.append(DRIZZLE_CONFIG_TS, { name: "lib/db/drizzle.config.ts" });
   archive.append(VITE_CONFIG, { name: "artifacts/trainer-web/vite.config.ts" });
   archive.append(TRAINER_WEB_PACKAGE_JSON, { name: "artifacts/trainer-web/package.json" });
+  archive.append(TRAINER_WEB_TSCONFIG, { name: "artifacts/trainer-web/tsconfig.json" });
   archive.append(WORKSPACE_YAML, { name: "pnpm-workspace.yaml" });
   archive.append(SETUP_README, { name: "SETUP.md" });
 
