@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/trainee-mobile/"
+title = "Trainee App"
+version = "1.0.0"
+id = "artifacts/trainee-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/trainee-mobile/" ]
+localPort = 25309
+
+[services.development]
+run = "pnpm --filter @workspace/trainee-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/trainee-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/trainee-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "25309"
+BASE_PATH = "/trainee-mobile/"
