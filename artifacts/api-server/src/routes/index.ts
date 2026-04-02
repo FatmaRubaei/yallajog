@@ -8,10 +8,12 @@ import weekPlansRouter, { currentWeekPlanRouter } from "./weekplans";
 import announcementsRouter from "./announcements";
 import eventsRouter from "./events";
 import dashboardRouter from "./dashboard";
+import downloadRouter from "./download";
 
 const router = Router();
 
 router.use(healthRouter);
+router.use(downloadRouter);
 router.use("/trainees", traineesRouter);
 router.use("/trainees/:id/contract", contractsRouter);
 router.use("/trainees/:id/transactions", transactionsRouter);
