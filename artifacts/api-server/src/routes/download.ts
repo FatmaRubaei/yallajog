@@ -9,7 +9,6 @@ const ROOT = path.resolve("/home/runner/workspace");
 // Files to include directly from the filesystem (excluding ones we override below)
 const INCLUDE_DIRS = [
   "artifacts/api-server/src",
-  "artifacts/api-server/package.json",
   "artifacts/api-server/tsconfig.json",
   "artifacts/trainer-web/src",
   "artifacts/trainer-web/index.html",
@@ -142,6 +141,38 @@ catalog:
 autoInstallPeers: false
 `;
 
+// Clean api-server package.json — uses tsx for dev instead of complex esbuild build
+const API_SERVER_PACKAGE_JSON = JSON.stringify({
+  name: "@workspace/api-server",
+  version: "0.0.0",
+  private: true,
+  type: "module",
+  scripts: {
+    dev: "tsx watch src/index.ts",
+    typecheck: "tsc -p tsconfig.json --noEmit",
+  },
+  dependencies: {
+    "@workspace/api-zod": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "archiver": "^7.0.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5",
+    "pino": "^9",
+    "pino-http": "^10",
+  },
+  devDependencies: {
+    "@types/archiver": "^7.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.3",
+    "pino-pretty": "^13",
+    "tsx": "^4.21.0",
+  },
+}, null, 2);
+
 const SETUP_README = `# Runnathon - Local Setup
 
 ## Prerequisites
@@ -212,6 +243,7 @@ router.get("/download-source", (req: Request, res: Response) => {
   // Override Replit-specific files with clean local versions
   archive.append(VITE_CONFIG, { name: "artifacts/trainer-web/vite.config.ts" });
   archive.append(TRAINER_WEB_PACKAGE_JSON, { name: "artifacts/trainer-web/package.json" });
+  archive.append(API_SERVER_PACKAGE_JSON, { name: "artifacts/api-server/package.json" });
   archive.append(WORKSPACE_YAML, { name: "pnpm-workspace.yaml" });
   archive.append(SETUP_README, { name: "SETUP.md" });
 
