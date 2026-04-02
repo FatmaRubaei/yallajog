@@ -177,6 +177,7 @@ const TRAINER_WEB_PACKAGE_JSON = JSON.stringify({
     "@radix-ui/react-tabs": "^1.1.4",
     "@radix-ui/react-toast": "^1.2.7",
     "@radix-ui/react-tooltip": "^1.2.0",
+    "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.1.14",
     "@tanstack/react-query": "^5.90.21",
     "@types/node": "^25.3.3",
