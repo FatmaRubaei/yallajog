@@ -25,8 +25,10 @@ import {
 } from "@/components/ui/select";
 import { Users, Plus, Search, MapPin, Phone, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 function TraineeCard({ trainee }: { trainee: any }) {
+  const { t } = useTranslation();
   return (
     <Card className="hover:shadow-md transition-shadow cursor-pointer">
       <CardContent className="p-5">
@@ -43,7 +45,7 @@ function TraineeCard({ trainee }: { trainee: any }) {
             </div>
           </div>
           <Badge variant={trainee.planType === "paid" ? "default" : "secondary"} className="text-xs">
-            {trainee.planType === "paid" ? "Paid" : "Free"}
+            {trainee.planType === "paid" ? t("trainees.paid") : t("trainees.free")}
           </Badge>
         </div>
         <div className="space-y-1 text-sm text-muted-foreground">
@@ -67,8 +69,8 @@ function TraineeCard({ trainee }: { trainee: any }) {
           )}
         </div>
         <div className="mt-3 flex gap-2 text-xs text-muted-foreground border-t pt-3">
-          <span>{trainee.runsPerWeek ?? 0} runs/week</span>
-          {trainee.targetHr && <span>· {trainee.targetHr} bpm target</span>}
+          <span>{t("trainees.runsPerWeek", { count: trainee.runsPerWeek ?? 0 })}</span>
+          {trainee.targetHr && <span>· {t("trainees.targetHr", { hr: trainee.targetHr })}</span>}
         </div>
       </CardContent>
     </Card>
@@ -77,6 +79,7 @@ function TraineeCard({ trainee }: { trainee: any }) {
 
 function AddTraineeDialog({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -98,12 +101,12 @@ function AddTraineeDialog({ onSuccess }: { onSuccess: () => void }) {
           runsPerWeek: Number(form.runsPerWeek),
         },
       });
-      toast({ title: "Trainee created" });
+      toast({ title: t("trainees.createSuccess") });
       setOpen(false);
       onSuccess();
       setForm({ name: "", phone: "", email: "", city: "", planType: "free", runsPerWeek: "3" });
     } catch {
-      toast({ title: "Failed to create trainee", variant: "destructive" });
+      toast({ title: t("trainees.createFailed"), variant: "destructive" });
     }
   }
 
@@ -111,26 +114,26 @@ function AddTraineeDialog({ onSuccess }: { onSuccess: () => void }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="h-4 w-4 mr-2" /> Add Trainee
+          <Plus className="h-4 w-4 me-2" /> {t("trainees.addTrainee")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>New Trainee</DialogTitle>
+          <DialogTitle>{t("trainees.newTrainee")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1">
-            <Label>Name *</Label>
+            <Label>{t("trainees.name")} *</Label>
             <Input
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Full name"
+              placeholder={t("trainees.namePlaceholder")}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Phone</Label>
+              <Label>{t("trainees.phone")}</Label>
               <Input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -138,16 +141,16 @@ function AddTraineeDialog({ onSuccess }: { onSuccess: () => void }) {
               />
             </div>
             <div className="space-y-1">
-              <Label>City</Label>
+              <Label>{t("trainees.city")}</Label>
               <Input
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                placeholder="City"
+                placeholder={t("trainees.city")}
               />
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Email</Label>
+            <Label>{t("trainees.email")}</Label>
             <Input
               type="email"
               value={form.email}
@@ -157,17 +160,17 @@ function AddTraineeDialog({ onSuccess }: { onSuccess: () => void }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Plan Type</Label>
+              <Label>{t("trainees.planType")}</Label>
               <Select value={form.planType} onValueChange={(v: any) => setForm({ ...form, planType: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="free">{t("trainees.freeOption")}</SelectItem>
+                  <SelectItem value="paid">{t("trainees.paidOption")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Runs / week</Label>
+              <Label>{t("trainees.runsPerWeekLabel")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -178,9 +181,9 @@ function AddTraineeDialog({ onSuccess }: { onSuccess: () => void }) {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create"}
+              {createMutation.isPending ? "..." : t("trainees.create")}
             </Button>
           </div>
         </form>
@@ -190,29 +193,30 @@ function AddTraineeDialog({ onSuccess }: { onSuccess: () => void }) {
 }
 
 export default function TraineeList() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const { data: trainees, isLoading, refetch } = useListTrainees({});
 
-  const filtered = (trainees ?? []).filter((t) =>
-    t.name?.toLowerCase().includes(search.toLowerCase()) ||
-    t.city?.toLowerCase().includes(search.toLowerCase())
+  const filtered = (trainees ?? []).filter((trainee) =>
+    trainee.name?.toLowerCase().includes(search.toLowerCase()) ||
+    trainee.city?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Trainees</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("trainees.title")}</h1>
           <p className="text-muted-foreground mt-1">{trainees?.length ?? 0} total</p>
         </div>
         <AddTraineeDialog onSuccess={refetch} />
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          className="pl-9"
-          placeholder="Search trainees..."
+          className="ps-9"
+          placeholder={t("trainees.search")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -227,12 +231,12 @@ export default function TraineeList() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
           <Users className="h-10 w-10" />
-          <p className="text-base">{search ? "No trainees match your search" : "No trainees yet"}</p>
+          <p className="text-base">{search ? t("trainees.noResults") : t("trainees.noTrainees")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((t) => (
-            <TraineeCard key={t.id} trainee={t} />
+          {filtered.map((trainee) => (
+            <TraineeCard key={trainee.id} trainee={trainee} />
           ))}
         </div>
       )}

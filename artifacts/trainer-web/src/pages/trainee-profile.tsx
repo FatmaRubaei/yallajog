@@ -21,9 +21,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, MapPin, Phone, Mail, CreditCard, Plus } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 function AddTransactionDialog({ traineeId, onSuccess }: { traineeId: number; onSuccess: () => void }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     amount: "",
@@ -45,11 +47,11 @@ function AddTransactionDialog({ traineeId, onSuccess }: { traineeId: number; onS
           notes: form.notes || undefined,
         },
       });
-      toast({ title: "Transaction added" });
+      toast({ title: t("profile.transactionSuccess") });
       setOpen(false);
       onSuccess();
     } catch {
-      toast({ title: "Failed to add transaction", variant: "destructive" });
+      toast({ title: t("profile.transactionFailed"), variant: "destructive" });
     }
   }
 
@@ -57,28 +59,28 @@ function AddTransactionDialog({ traineeId, onSuccess }: { traineeId: number; onS
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <Plus className="h-4 w-4 mr-1.5" /> Add Transaction
+          <Plus className="h-4 w-4 me-1.5" /> {t("profile.addTransaction")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add Transaction</DialogTitle>
+          <DialogTitle>{t("profile.addTransaction")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3 mt-2">
-          <p className="text-xs text-muted-foreground">Positive = payment received. Negative = charge.</p>
+          <p className="text-xs text-muted-foreground">{t("profile.paymentNote")}</p>
           <div className="space-y-1">
-            <Label>Amount (₪)</Label>
+            <Label>{t("profile.amount")}</Label>
             <Input
               type="number"
               step="0.01"
               required
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              placeholder="e.g. 500 or -500"
+              placeholder={t("profile.amountPlaceholder")}
             />
           </div>
           <div className="space-y-1">
-            <Label>Activity Month</Label>
+            <Label>{t("profile.activityMonth")}</Label>
             <Input
               required
               value={form.activityMonth}
@@ -87,7 +89,7 @@ function AddTransactionDialog({ traineeId, onSuccess }: { traineeId: number; onS
             />
           </div>
           <div className="space-y-1">
-            <Label>Date</Label>
+            <Label>{t("profile.date")}</Label>
             <Input
               type="date"
               required
@@ -96,18 +98,18 @@ function AddTransactionDialog({ traineeId, onSuccess }: { traineeId: number; onS
             />
           </div>
           <div className="space-y-1">
-            <Label>Notes</Label>
+            <Label>{t("profile.notes")}</Label>
             <Textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Optional notes"
+              placeholder={t("profile.notesPlaceholder")}
               rows={2}
             />
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Saving..." : "Add"}
+              {mutation.isPending ? "..." : t("profile.submit")}
             </Button>
           </div>
         </form>
@@ -127,6 +129,7 @@ function InfoRow({ label, value }: { label: string; value?: string | number | nu
 }
 
 export default function TraineeProfile() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const traineeId = Number(id);
   const { toast } = useToast();
@@ -148,7 +151,7 @@ export default function TraineeProfile() {
 
   if (!trainee) {
     return (
-      <div className="text-center py-16 text-muted-foreground">Trainee not found.</div>
+      <div className="text-center py-16 text-muted-foreground">{t("common.notFound")}</div>
     );
   }
 

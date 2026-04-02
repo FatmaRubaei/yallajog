@@ -19,9 +19,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Flag, Plus, MapPin, Calendar, Clock } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 function AddEventDialog({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -42,61 +44,61 @@ function AddEventDialog({ onSuccess }: { onSuccess: () => void }) {
           distance: form.distance ? Number(form.distance) : undefined,
         } as any,
       });
-      toast({ title: "Event created" });
+      toast({ title: t("events.createSuccess") });
       setOpen(false);
       onSuccess();
       setForm({ name: "", date: "", location: "", description: "", distance: "", eventType: "race" });
     } catch {
-      toast({ title: "Failed", variant: "destructive" });
+      toast({ title: t("events.createFailed"), variant: "destructive" });
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="h-4 w-4 mr-2" /> Add Event</Button>
+        <Button><Plus className="h-4 w-4 me-2" /> {t("events.addEvent")}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>New Event</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t("events.newEvent")}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1">
-            <Label>Event Name *</Label>
-            <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Tel Aviv Marathon" />
+            <Label>{t("events.eventName")} *</Label>
+            <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("events.eventNamePlaceholder")} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Date *</Label>
+              <Label>{t("events.date")} *</Label>
               <Input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </div>
             <div className="space-y-1">
-              <Label>Type</Label>
+              <Label>{t("events.type")}</Label>
               <Select value={form.eventType} onValueChange={(v) => setForm({ ...form, eventType: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="race">Race</SelectItem>
-                  <SelectItem value="group_run">Group Run</SelectItem>
-                  <SelectItem value="training_camp">Training Camp</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="race">{t("events.race")}</SelectItem>
+                  <SelectItem value="group_run">{t("events.groupRun")}</SelectItem>
+                  <SelectItem value="training_camp">{t("events.trainingCamp")}</SelectItem>
+                  <SelectItem value="other">{t("events.other")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Location</Label>
-              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="City or venue" />
+              <Label>{t("events.location")}</Label>
+              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder={t("events.locationPlaceholder")} />
             </div>
             <div className="space-y-1">
-              <Label>Distance (km)</Label>
-              <Input type="number" step="0.1" value={form.distance} onChange={(e) => setForm({ ...form, distance: e.target.value })} placeholder="e.g. 42.2" />
+              <Label>{t("events.distance")}</Label>
+              <Input type="number" step="0.1" value={form.distance} onChange={(e) => setForm({ ...form, distance: e.target.value })} placeholder={t("events.distancePlaceholder")} />
             </div>
           </div>
           <div className="space-y-1">
-            <Label>Description</Label>
-            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Event details..." rows={3} />
+            <Label>{t("events.description")}</Label>
+            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t("events.descriptionPlaceholder")} rows={3} />
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? "Creating..." : "Create"}
             </Button>
@@ -116,16 +118,17 @@ function eventTypeColor(type: string) {
   }
 }
 
-function eventTypeLabel(type: string) {
+function eventTypeLabel(type: string, t: (key: string) => string) {
   switch (type) {
-    case "race": return "Race";
-    case "group_run": return "Group Run";
-    case "training_camp": return "Training Camp";
+    case "race": return t("events.race");
+    case "group_run": return t("events.groupRun");
+    case "training_camp": return t("events.trainingCamp");
     default: return type;
   }
 }
 
 export default function EventList() {
+  const { t } = useTranslation();
   const { data: events, isLoading, refetch } = useListEvents();
   const today = new Date().toISOString().slice(0, 10);
 
@@ -136,8 +139,8 @@ export default function EventList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Events</h1>
-          <p className="text-muted-foreground mt-1">Races, group runs, and training camps</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("events.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("events.subtitle")}</p>
         </div>
         <AddEventDialog onSuccess={refetch} />
       </div>
@@ -149,13 +152,13 @@ export default function EventList() {
       ) : (events ?? []).length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-2 text-muted-foreground">
           <Flag className="h-10 w-10" />
-          <p>No events yet</p>
+          <p>{t("events.noEvents")}</p>
         </div>
       ) : (
         <>
           {upcoming.length > 0 && (
             <div>
-              <h2 className="text-base font-semibold text-muted-foreground mb-3 uppercase tracking-wide text-xs">Upcoming</h2>
+              <h2 className="text-base font-semibold text-muted-foreground mb-3 uppercase tracking-wide text-xs">{t("events.upcoming")}</h2>
               <div className="space-y-3">
                 {upcoming.map((event) => (
                   <Card key={event.id} className="hover:shadow-sm transition-shadow border-l-4 border-l-primary">
@@ -164,7 +167,7 @@ export default function EventList() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold text-base">{event.name}</h3>
-                            <Badge variant={eventTypeColor(event.eventType ?? "other") as any}>{eventTypeLabel(event.eventType ?? "other")}</Badge>
+                            <Badge variant={eventTypeColor(event.eventType ?? "other") as any}>{eventTypeLabel(event.eventType ?? "other", t)}</Badge>
                           </div>
                           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
@@ -206,7 +209,7 @@ export default function EventList() {
 
           {past.length > 0 && (
             <div>
-              <h2 className="text-base font-semibold text-muted-foreground mb-3 uppercase tracking-wide text-xs">Past</h2>
+              <h2 className="text-base font-semibold text-muted-foreground mb-3 uppercase tracking-wide text-xs">{t("events.past")}</h2>
               <div className="space-y-2 opacity-70">
                 {past.map((event) => (
                   <Card key={event.id} className="hover:shadow-sm transition-shadow">
@@ -220,7 +223,7 @@ export default function EventList() {
                             {event.distance && <span>· {event.distance} km</span>}
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-xs">{eventTypeLabel(event.eventType ?? "other")}</Badge>
+                        <Badge variant="outline" className="text-xs">{eventTypeLabel(event.eventType ?? "other", t)}</Badge>
                       </div>
                     </CardContent>
                   </Card>

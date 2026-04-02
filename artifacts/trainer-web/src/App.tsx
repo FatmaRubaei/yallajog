@@ -2,6 +2,8 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import NotFound from "@/pages/not-found";
 import { MainLayout } from "@/components/layout/main-layout";
 import Dashboard from "@/pages/dashboard";
@@ -13,6 +15,17 @@ import AnnouncementList from "@/pages/announcements";
 import EventList from "@/pages/events";
 
 const queryClient = new QueryClient();
+
+function RTLHandler() {
+  const { i18n } = useTranslation();
+  useEffect(() => {
+    const isRtl = i18n.language === "ar";
+    document.documentElement.dir = isRtl ? "rtl" : "ltr";
+    document.documentElement.lang = i18n.language;
+    localStorage.setItem("lang", i18n.language);
+  }, [i18n.language]);
+  return null;
+}
 
 function Router() {
   return (
@@ -36,6 +49,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <RTLHandler />
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
         </WouterRouter>

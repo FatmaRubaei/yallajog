@@ -22,9 +22,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dumbbell, Plus, Tag } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 function AddSegmentDialog({ types, onSuccess }: { types: any[]; onSuccess: () => void }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -47,18 +49,18 @@ function AddSegmentDialog({ types, onSuccess }: { types: any[]; onSuccess: () =>
           defaultDistanceKm: form.defaultDistanceKm ? Number(form.defaultDistanceKm) : undefined,
         },
       });
-      toast({ title: "Segment created" });
+      toast({ title: t("segments.createSuccess") });
       setOpen(false);
       onSuccess();
     } catch {
-      toast({ title: "Failed to create segment", variant: "destructive" });
+      toast({ title: t("segments.createFailed"), variant: "destructive" });
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="h-4 w-4 mr-2" /> Add Segment</Button>
+        <Button><Plus className="h-4 w-4 me-2" /> {t("segments.addSegment")}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>New Segment</DialogTitle></DialogHeader>
@@ -161,16 +163,17 @@ function AddSegmentTypeDialog({ onSuccess }: { onSuccess: () => void }) {
 }
 
 export default function SegmentLibrary() {
+  const { t } = useTranslation();
   const { data: segments, isLoading: segsLoading, refetch: refetchSegs } = useListSegments({});
   const { data: types, isLoading: typesLoading, refetch: refetchTypes } = useListSegmentTypes({});
 
-  const typeMap = Object.fromEntries((types ?? []).map((t) => [t.id, t]));
+  const typeMap = Object.fromEntries((types ?? []).map((type) => [type.id, type]));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Segment Library</h1>
-        <p className="text-muted-foreground mt-1">Reusable training segment templates</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t("segments.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("segments.subtitle")}</p>
       </div>
 
       <Tabs defaultValue="segments">
@@ -193,7 +196,7 @@ export default function SegmentLibrary() {
           ) : (segments ?? []).length === 0 ? (
             <div className="flex flex-col items-center py-16 gap-2 text-muted-foreground">
               <Dumbbell className="h-10 w-10" />
-              <p>No segments yet</p>
+              <p>{t("segments.noSegments")}</p>
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -237,7 +240,7 @@ export default function SegmentLibrary() {
           ) : (types ?? []).length === 0 ? (
             <div className="flex flex-col items-center py-16 gap-2 text-muted-foreground">
               <Tag className="h-10 w-10" />
-              <p>No segment types yet</p>
+              <p>{t("segments.noTypes")}</p>
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

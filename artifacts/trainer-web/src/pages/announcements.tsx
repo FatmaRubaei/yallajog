@@ -19,11 +19,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Megaphone, Plus } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const AUDIENCES = ["all", "paid", "free"] as const;
 
 function AddAnnouncementDialog({ onSuccess }: { onSuccess: () => void }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: "", content: "", audience: "all" as string });
   const mutation = useCreateAnnouncement();
@@ -32,46 +34,46 @@ function AddAnnouncementDialog({ onSuccess }: { onSuccess: () => void }) {
     e.preventDefault();
     try {
       await mutation.mutateAsync({ data: form as any });
-      toast({ title: "Announcement created" });
+      toast({ title: t("announcements.createSuccess") });
       setOpen(false);
       onSuccess();
       setForm({ title: "", content: "", audience: "all" });
     } catch {
-      toast({ title: "Failed", variant: "destructive" });
+      toast({ title: t("announcements.createFailed"), variant: "destructive" });
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button><Plus className="h-4 w-4 mr-2" /> New Announcement</Button>
+        <Button><Plus className="h-4 w-4 me-2" /> {t("announcements.addAnnouncement")}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>New Announcement</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t("announcements.newAnnouncement")}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1">
-            <Label>Title *</Label>
-            <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Announcement title" />
+            <Label>{t("announcements.titleField")} *</Label>
+            <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder={t("announcements.titlePlaceholder")} />
           </div>
           <div className="space-y-1">
-            <Label>Content *</Label>
-            <Textarea required value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder="Write your announcement..." rows={4} />
+            <Label>{t("announcements.content")} *</Label>
+            <Textarea required value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder={t("announcements.contentPlaceholder")} rows={4} />
           </div>
           <div className="space-y-1">
-            <Label>Audience</Label>
+            <Label>{t("announcements.audience")}</Label>
             <Select value={form.audience} onValueChange={(v) => setForm({ ...form, audience: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Trainees</SelectItem>
-                <SelectItem value="paid">Paid Only</SelectItem>
-                <SelectItem value="free">Free Only</SelectItem>
+                <SelectItem value="all">{t("announcements.all")}</SelectItem>
+                <SelectItem value="paid">{t("announcements.paid")}</SelectItem>
+                <SelectItem value="free">{t("announcements.free")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? "Posting..." : "Post"}
+              {mutation.isPending ? "..." : t("announcements.send")}
             </Button>
           </div>
         </form>
@@ -81,6 +83,7 @@ function AddAnnouncementDialog({ onSuccess }: { onSuccess: () => void }) {
 }
 
 export default function AnnouncementList() {
+  const { t } = useTranslation();
   const { data: announcements, isLoading, refetch } = useListAnnouncements();
 
   const sorted = [...(announcements ?? [])].sort((a, b) =>
@@ -91,8 +94,8 @@ export default function AnnouncementList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Announcements</h1>
-          <p className="text-muted-foreground mt-1">Broadcast messages to your trainees</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("announcements.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("announcements.subtitle")}</p>
         </div>
         <AddAnnouncementDialog onSuccess={refetch} />
       </div>
@@ -104,7 +107,7 @@ export default function AnnouncementList() {
       ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-2 text-muted-foreground">
           <Megaphone className="h-10 w-10" />
-          <p>No announcements yet</p>
+          <p>{t("announcements.noAnnouncements")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -114,7 +117,7 @@ export default function AnnouncementList() {
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <h3 className="font-semibold text-base">{ann.title}</h3>
                   <Badge variant={ann.audience === "all" ? "default" : ann.audience === "paid" ? "secondary" : "outline"} className="shrink-0">
-                    {ann.audience === "all" ? "All" : ann.audience === "paid" ? "Paid" : "Free"}
+                    {ann.audience === "all" ? t("announcements.all") : ann.audience === "paid" ? t("announcements.paid") : t("announcements.free")}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{ann.content}</p>

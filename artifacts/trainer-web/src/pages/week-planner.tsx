@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { CalendarDays, Users, ArrowLeft, Plus, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 const RUN_TYPES = ["Tempo", "Interval", "Recovery", "Up Hill", "Long Run"] as const;
 
@@ -53,13 +54,14 @@ function TraineeCard({ trainee }: { trainee: any }) {
 }
 
 export function WeekPlannerList() {
+  const { t } = useTranslation();
   const { data: trainees, isLoading } = useListTrainees({});
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Week Planner</h1>
-        <p className="text-muted-foreground mt-1">Manage weekly training plans for each trainee</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t("weekPlanner.title")}</h1>
+        <p className="text-muted-foreground mt-1">{t("weekPlanner.subtitle")}</p>
       </div>
 
       {isLoading ? (
@@ -69,15 +71,15 @@ export function WeekPlannerList() {
       ) : (trainees ?? []).length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-2 text-muted-foreground">
           <Users className="h-10 w-10" />
-          <p>No trainees yet</p>
+          <p>{t("weekPlanner.noTrainees")}</p>
           <Link href="/trainees">
-            <Button variant="outline" size="sm" className="mt-1">Add a trainee</Button>
+            <Button variant="outline" size="sm" className="mt-1">{t("weekPlanner.addTrainee")}</Button>
           </Link>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(trainees ?? []).map((t) => (
-            <TraineeCard key={t.id} trainee={t} />
+          {(trainees ?? []).map((trainee) => (
+            <TraineeCard key={trainee.id} trainee={trainee} />
           ))}
         </div>
       )}
@@ -244,11 +246,12 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
 }
 
 export function TraineeWeekPlanner() {
+  const { t } = useTranslation();
   const { traineeId: traineeIdStr } = useParams<{ traineeId: string }>();
   const traineeId = Number(traineeIdStr);
   const { toast } = useToast();
 
-  const { data: trainee } = useListTrainees({}, { query: { select: (d) => d.find((t) => t.id === traineeId) } });
+  const { data: trainee } = useListTrainees({}, { query: { select: (d) => d.find((tr) => tr.id === traineeId) } });
   const { data: currentPlan, refetch } = useGetTraineeCurrentWeekPlan(traineeId);
   const { data: allPlans } = useListWeekPlans({ traineeId });
 
@@ -311,7 +314,7 @@ export function TraineeWeekPlanner() {
 
       {sortedPlans.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">All Plans</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t("weekPlanner.allPlans")}</h2>
           <div className="space-y-2">
             {sortedPlans.map((plan) => (
               <Card key={plan.id} className="hover:shadow-sm transition-shadow">
