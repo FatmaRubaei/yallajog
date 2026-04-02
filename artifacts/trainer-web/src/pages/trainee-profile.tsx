@@ -238,16 +238,16 @@ export default function TraineeProfile() {
             {balance && (
               <div className={`rounded-lg p-3 mb-3 text-sm ${isOverdue ? "bg-destructive/10" : "bg-green-50 dark:bg-green-900/20"}`}>
                 <div className={`text-2xl font-bold ${isOverdue ? "text-destructive" : "text-green-700 dark:text-green-400"}`}>
-                  ₪{Math.abs(balance.balance).toFixed(2)}
+                  ${Math.abs(balance.balance).toFixed(2)}
                 </div>
                 <div className={`text-xs mt-0.5 ${isOverdue ? "text-destructive/80" : "text-green-600 dark:text-green-500"}`}>
                   {isOverdue ? "Outstanding balance" : "All paid up"}
                 </div>
               </div>
             )}
-            <InfoRow label="Total Charged" value={balance ? `₪${balance.totalCharged.toFixed(2)}` : null} />
-            <InfoRow label="Total Paid" value={balance ? `₪${balance.totalPaid.toFixed(2)}` : null} />
-            <InfoRow label="Monthly Fee" value={balance?.monthlyFee ? `₪${balance.monthlyFee.toFixed(2)}` : null} />
+            <InfoRow label="Total Charged" value={balance ? `$${balance.totalCharged.toFixed(2)}` : null} />
+            <InfoRow label="Total Paid" value={balance ? `$${balance.totalPaid.toFixed(2)}` : null} />
+            <InfoRow label="Monthly Fee" value={balance?.monthlyFee ? `$${balance.monthlyFee.toFixed(2)}` : null} />
             <InfoRow label="Preferred Payment" value={trainee.preferredPayment?.replace("_", " ")} />
           </CardContent>
         </Card>
@@ -271,7 +271,7 @@ export default function TraineeProfile() {
                     <p className="text-xs text-muted-foreground">{tx.date}</p>
                   </div>
                   <span className={`font-semibold text-sm ${tx.amount > 0 ? "text-green-600" : "text-destructive"}`}>
-                    {tx.amount > 0 ? "+" : ""}₪{tx.amount.toFixed(2)}
+                    {tx.amount > 0 ? "+" : ""}${tx.amount.toFixed(2)}
                   </span>
                 </div>
               ))}

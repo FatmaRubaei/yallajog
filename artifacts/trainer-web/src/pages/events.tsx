@@ -172,7 +172,7 @@ export default function EventList() {
                           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3.5 w-3.5" />
-                              {new Date(event.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              {new Date(event.date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
                             </span>
                             {event.location && (
                               <span className="flex items-center gap-1">
@@ -196,7 +196,7 @@ export default function EventList() {
                             {new Date(event.date).getDate()}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(event.date).toLocaleDateString("en-US", { month: "short" })}
+                            {new Date(event.date).toLocaleDateString(undefined, { month: "short" })}
                           </p>
                         </div>
                       </div>
