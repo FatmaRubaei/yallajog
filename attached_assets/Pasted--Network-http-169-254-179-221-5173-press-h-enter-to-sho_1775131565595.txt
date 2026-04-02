@@ -1,0 +1,47 @@
+ ➜  Network: http://169.254.179.221:5173/
+  ➜  press h + enter to show help
+(!) Failed to run dependency scan. Skipping dependency pre-bundling. TSConfckParseError: failed to resolve "extends":"../../tsconfig.base.json" in /Users/fatmaalrubaei/Public/runnathon-source/artifacts/trainer-web/tsconfig.json
+    at resolveExtends (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:5809:8)
+    at parseExtends (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:5775:71)
+    at parse$13 (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:5677:23)
+    at async loadTsconfigJsonForFile (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:6286:37)
+    at async prepareEsbuildScanner (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:31445:24)
+    at async scan (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:31380:14)
+    at async file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:34111:15
+2:05:54 PM [vite] Internal server error: failed to resolve "extends":"../../tsconfig.base.json" in /Users/fatmaalrubaei/Public/runnathon-source/artifacts/trainer-web/tsconfig.json
+  Plugin: vite:esbuild
+  File: /Users/fatmaalrubaei/Public/runnathon-source/artifacts/trainer-web/src/main.tsx
+      at resolveExtends (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:5809:8)
+      at parseExtends (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:5775:71)
+      at parse$13 (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:5677:23)
+      at async loadTsconfigJsonForFile (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:6286:37)
+      at async transformWithEsbuild (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:6086:55)
+      at async TransformPluginContext.transform (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:6172:20)
+      at async EnvironmentPluginContainer.transform (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:28797:14)
+      at async loadAndTransform (file:///Users/fatmaalrubaei/Public/runnathon-source/node_modules/.pnpm/vite@7.3.1_@types+node@25.5.0_jiti@2.6.1_lightningcss@1.32.0_terser@5.46.1_tsx@4.21.0_yaml@2.8.3/node_modules/vite/dist/node/chunks/config.js:22670:26)
+2:05:54 PM [vite] (client) Pre-transform error: failed to resolve "extends":"../../tsconfig.base.json" in /Users/fatmaalrubaei/Public/runnathon-source/artifacts/trainer-web/tsconfig.json
+  Plugin: vite:esbuild
+  File: /Users/fatmaalrubaei/Public/runnathon-source/artifacts/trainer-web/src/main.tsx
+2:05:55 PM [vite] (client) Pre-transform error: failed to resolve "extends":"../../tsconfig.base.json" in /Users/fatmaalrubaei/Public/runnathon-source/artifacts/trainer-web/tsconfig.json
+  Plugin: vite:esbuild
+  File: /Users/fatmaalrubaei/Public/runnathon-source/artifacts/trainer-web/src/main.tsx (x2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
