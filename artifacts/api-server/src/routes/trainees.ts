@@ -6,7 +6,7 @@ import {
   weekPlansTable,
   runsTable,
 } from "@workspace/db/schema";
-import { eq, like, and, sql } from "drizzle-orm";
+import { eq, like, and, sql, isNull, or } from "drizzle-orm";
 import {
   CreateTraineeBody,
   UpdateTraineeBody,
@@ -75,7 +75,8 @@ router.get("/", async (req, res) => {
   let conditions: ReturnType<typeof eq>[] = [];
   if (params.planType) conditions.push(eq(traineesTable.planType, params.planType));
 
-  const traineesList = await db.select().from(traineesTable);
+  const trainerId = (req as any).trainerId as number;
+  const traineesList = await db.select().from(traineesTable).where(eq(traineesTable.trainerId, trainerId));
 
   const results = await Promise.all(
     traineesList.map(async (t) => {
@@ -109,7 +110,8 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const body = CreateTraineeBody.parse(req.body);
-  const [trainee] = await db.insert(traineesTable).values(body as any).returning();
+  const trainerId = (req as any).trainerId as number;
+  const [trainee] = await db.insert(traineesTable).values({ ...body as any, trainerId }).returning();
   const balance = await computeBalanceDue(trainee.id, trainee.monthlyFee ? Number(trainee.monthlyFee) : null);
   res.status(201).json(buildTraineeWithComputed(trainee, balance, false, false));
 });

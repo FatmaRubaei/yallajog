@@ -14,8 +14,9 @@ function getMondayStr() {
   return monday.toISOString().split("T")[0];
 }
 
-router.get("/summary", async (_req, res) => {
-  const trainees = await db.select().from(traineesTable);
+router.get("/summary", async (req, res) => {
+  const trainerId = (req as any).trainerId as number;
+  const trainees = await db.select().from(traineesTable).where(eq(traineesTable.trainerId, trainerId));
   const mondayStr = getMondayStr();
 
   const weekPlans = await db.select().from(weekPlansTable).where(
@@ -60,8 +61,9 @@ router.get("/summary", async (_req, res) => {
   });
 });
 
-router.get("/trainees-needing-attention", async (_req, res) => {
-  const trainees = await db.select().from(traineesTable);
+router.get("/trainees-needing-attention", async (req, res) => {
+  const trainerId = (req as any).trainerId as number;
+  const trainees = await db.select().from(traineesTable).where(eq(traineesTable.trainerId, trainerId));
   const mondayStr = getMondayStr();
 
   const allTransactions = await db.select().from(transactionsTable);

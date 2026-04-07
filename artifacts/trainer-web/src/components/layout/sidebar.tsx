@@ -11,6 +11,8 @@ import {
   Sun,
   Moon,
   Check,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/hooks/use-theme";
+import { type TrainerInfo } from "@/hooks/use-auth";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -35,7 +38,13 @@ const LANGUAGES = [
   { code: "he", label: "עברית" },
 ];
 
-function NavContent({ onClick }: { onClick?: () => void }) {
+interface NavContentProps {
+  onClick?: () => void;
+  trainer: TrainerInfo;
+  onLogout: () => void;
+}
+
+function NavContent({ onClick, trainer, onLogout }: NavContentProps) {
   const [location] = useLocation();
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === "ar" || i18n.language === "he";
@@ -48,6 +57,7 @@ function NavContent({ onClick }: { onClick?: () => void }) {
     { name: t("nav.segments"), href: "/segments", icon: Dumbbell },
     { name: t("nav.announcements"), href: "/announcements", icon: Megaphone },
     { name: t("nav.events"), href: "/events", icon: Flag },
+    { name: "Control Panel", href: "/control-panel", icon: Settings },
   ];
 
   const currentLang = LANGUAGES.find((l) => l.code === i18n.language) ?? LANGUAGES[0];
@@ -87,6 +97,16 @@ function NavContent({ onClick }: { onClick?: () => void }) {
         </nav>
       </div>
       <div className="p-3 border-t border-sidebar-border space-y-1">
+        <div className="flex items-center gap-3 px-3 py-2 mb-1">
+          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+            {trainer.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{trainer.name}</p>
+            <p className="text-xs text-sidebar-foreground/50 truncate">{trainer.email}</p>
+          </div>
+        </div>
+
         <button
           onClick={toggleTheme}
           className="flex items-center w-full rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
@@ -117,12 +137,25 @@ function NavContent({ onClick }: { onClick?: () => void }) {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <button
+          onClick={onLogout}
+          className="flex items-center w-full rounded-md px-3 py-2 text-sm font-medium text-destructive/80 hover:bg-destructive/10 hover:text-destructive transition-colors"
+        >
+          <LogOut className="h-5 w-5 me-3 shrink-0" />
+          Sign Out
+        </button>
       </div>
     </div>
   );
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  trainer: TrainerInfo;
+  onLogout: () => void;
+}
+
+export function Sidebar({ trainer, onLogout }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const { i18n } = useTranslation();
   const isRtl = i18n.language === "ar" || i18n.language === "he";
@@ -141,7 +174,7 @@ export function Sidebar() {
           </Button>
         </SheetTrigger>
         <SheetContent side={isRtl ? "right" : "left"} className="p-0 w-64 bg-sidebar border-sidebar-border">
-          <NavContent onClick={() => setOpen(false)} />
+          <NavContent onClick={() => setOpen(false)} trainer={trainer} onLogout={onLogout} />
         </SheetContent>
       </Sheet>
 
@@ -151,7 +184,7 @@ export function Sidebar() {
           isRtl ? "md:right-0 border-l" : "md:left-0 border-r"
         )}
       >
-        <NavContent />
+        <NavContent trainer={trainer} onLogout={onLogout} />
       </div>
     </>
   );

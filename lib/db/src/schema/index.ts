@@ -1,3 +1,4 @@
+export * from "./trainers";
 export * from "./trainees";
 export * from "./transactions";
 export * from "./segments";
