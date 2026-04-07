@@ -11,3 +11,9 @@ id = "5u8OS06ZyoSGxcyeStkRy"
 uri = "file://running-trainer-app.tar.gz"
 type = "unspecified"
 title = "Running Trainer App — Full Source Code"
+
+[[outputs]]
+id = "5cAAlwyOUi8c-21qQzOny"
+uri = "file://trainer-app-source.tar.gz"
+type = "unspecified"
+title = "Trainer App Source Code (api-server + trainer-web + lib)"
