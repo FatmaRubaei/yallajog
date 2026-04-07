@@ -286,10 +286,13 @@ function EditRunDialog({
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Segment Type</Label>
-                      <Select value={seg.segmentType} onValueChange={(v) => updateSeg(idx, "segmentType", v)}>
+                      <Select
+                        value={seg.segmentType || "__none__"}
+                        onValueChange={(v) => updateSeg(idx, "segmentType", v === "__none__" ? null : v)}
+                      >
                         <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No type" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No type</SelectItem>
+                          <SelectItem value="__none__">No type</SelectItem>
                           {SEGMENT_TYPES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
                         </SelectContent>
                       </Select>
