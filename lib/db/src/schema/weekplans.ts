@@ -25,6 +25,7 @@ export const runSegmentsTable = pgTable("run_segments", {
   runId: integer("run_id").notNull().references(() => runsTable.id, { onDelete: "cascade" }),
   segmentId: integer("segment_id").references(() => segmentsTable.id, { onDelete: "set null" }),
   resolvedText: text("resolved_text").notNull(),
+  segmentType: text("segment_type"),
   durationMinutes: real("duration_minutes"),
   distanceKm: real("distance_km"),
   pace: text("pace"),

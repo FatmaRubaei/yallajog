@@ -34,6 +34,19 @@ import { useTranslation } from "react-i18next";
 
 const RUN_TYPES = ["Tempo", "Interval", "Recovery", "Up Hill", "Long Run"] as const;
 
+const SEGMENT_TYPES = ["Warm-up", "Main Set", "Interval", "Recovery", "Cool-down", "Stride", "Strength"] as const;
+type SegmentType = typeof SEGMENT_TYPES[number];
+
+const SEGMENT_TYPE_STYLES: Record<SegmentType, string> = {
+  "Warm-up":   "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+  "Main Set":  "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  "Interval":  "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800",
+  "Recovery":  "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  "Cool-down": "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800",
+  "Stride":    "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800",
+  "Strength":  "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+};
+
 function formatDistance(km: number | null | undefined) {
   if (km == null) return null;
   if (km < 1) return `${Math.round(km * 1000)}m`;
@@ -44,12 +57,21 @@ function SegmentDetails({ seg, completed }: { seg: any; completed: boolean }) {
   const hasDuration = seg.durationMinutes != null;
   const hasDistance = seg.distanceKm != null;
   const hasPace = seg.pace != null && seg.pace !== "";
+  const segType = seg.segmentType as SegmentType | null | undefined;
+  const typeStyle = segType ? SEGMENT_TYPE_STYLES[segType] : null;
 
   return (
     <div className="flex flex-col gap-1">
-      <span className={`text-sm font-medium transition-all ${completed ? "line-through text-muted-foreground" : ""}`}>
-        {seg.resolvedText}
-      </span>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {typeStyle && (
+          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border font-medium transition-opacity ${completed ? "opacity-30" : typeStyle}`}>
+            {segType}
+          </span>
+        )}
+        <span className={`text-sm font-medium transition-all ${completed ? "line-through text-muted-foreground" : ""}`}>
+          {seg.resolvedText}
+        </span>
+      </div>
       {(hasDuration || hasDistance || hasPace) && (
         <div className="flex flex-wrap gap-1.5">
           {hasDuration && (
@@ -126,6 +148,7 @@ function SegmentRow({
 type EditableSegment = {
   id?: number;
   resolvedText: string;
+  segmentType: string;
   durationMinutes: string;
   distanceKm: string;
   pace: string;
@@ -149,6 +172,7 @@ function EditRunDialog({
     (run.segments ?? []).map((s: any) => ({
       id: s.id,
       resolvedText: s.resolvedText,
+      segmentType: s.segmentType ?? "",
       durationMinutes: s.durationMinutes != null ? String(s.durationMinutes) : "",
       distanceKm: s.distanceKm != null ? String(s.distanceKm) : "",
       pace: s.pace ?? "",
@@ -161,7 +185,7 @@ function EditRunDialog({
   function addSegment() {
     setSegments([
       ...segments,
-      { resolvedText: "", durationMinutes: "", distanceKm: "", pace: "", order: segments.length + 1 },
+      { resolvedText: "", segmentType: "", durationMinutes: "", distanceKm: "", pace: "", order: segments.length + 1 },
     ]);
   }
 
@@ -186,6 +210,7 @@ function EditRunDialog({
           segments: segments.map((s, i) => ({
             segmentId: undefined,
             resolvedText: s.resolvedText,
+            segmentType: s.segmentType !== "" ? s.segmentType : null,
             durationMinutes: s.durationMinutes !== "" ? Number(s.durationMinutes) : null,
             distanceKm: s.distanceKm !== "" ? Number(s.distanceKm) : null,
             pace: s.pace !== "" ? s.pace : null,
@@ -258,15 +283,27 @@ function EditRunDialog({
                       </Button>
                     )}
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Description *</Label>
-                    <Input
-                      required
-                      value={seg.resolvedText}
-                      onChange={(e) => updateSeg(idx, "resolvedText", e.target.value)}
-                      placeholder="e.g. 800m at 4:40 pace"
-                      className="h-8 text-sm"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Segment Type</Label>
+                      <Select value={seg.segmentType} onValueChange={(v) => updateSeg(idx, "segmentType", v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No type" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No type</SelectItem>
+                          {SEGMENT_TYPES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Description *</Label>
+                      <Input
+                        required
+                        value={seg.resolvedText}
+                        onChange={(e) => updateSeg(idx, "resolvedText", e.target.value)}
+                        placeholder="e.g. 800m at 4:40 pace"
+                        className="h-8 text-sm"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
