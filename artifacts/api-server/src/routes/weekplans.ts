@@ -100,7 +100,15 @@ router.post("/:id/runs", async (req, res) => {
   const [run] = await db.insert(runsTable).values({ weekPlanId: id, ...runData } as any).returning();
   if (segments && segments.length > 0) {
     await db.insert(runSegmentsTable).values(
-      segments.map((s: any) => ({ runId: run.id, segmentId: s.segmentId ?? null, resolvedText: s.resolvedText, order: s.order }))
+      segments.map((s: any) => ({
+        runId: run.id,
+        segmentId: s.segmentId ?? null,
+        resolvedText: s.resolvedText,
+        durationMinutes: s.durationMinutes ?? null,
+        distanceKm: s.distanceKm ?? null,
+        pace: s.pace ?? null,
+        order: s.order,
+      }))
     );
   }
   res.status(201).json(await buildRun(run));
@@ -116,7 +124,15 @@ router.put("/:id/runs/:runId", async (req, res) => {
     await db.delete(runSegmentsTable).where(eq(runSegmentsTable.runId, runId));
     if (segments.length > 0) {
       await db.insert(runSegmentsTable).values(
-        segments.map((s: any) => ({ runId, segmentId: s.segmentId ?? null, resolvedText: s.resolvedText, order: s.order }))
+        segments.map((s: any) => ({
+          runId,
+          segmentId: s.segmentId ?? null,
+          resolvedText: s.resolvedText,
+          durationMinutes: s.durationMinutes ?? null,
+          distanceKm: s.distanceKm ?? null,
+          pace: s.pace ?? null,
+          order: s.order,
+        }))
       );
     }
   }

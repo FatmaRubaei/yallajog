@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, date, timestamp, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { traineesTable } from "./trainees";
@@ -25,6 +25,9 @@ export const runSegmentsTable = pgTable("run_segments", {
   runId: integer("run_id").notNull().references(() => runsTable.id, { onDelete: "cascade" }),
   segmentId: integer("segment_id").references(() => segmentsTable.id, { onDelete: "set null" }),
   resolvedText: text("resolved_text").notNull(),
+  durationMinutes: real("duration_minutes"),
+  distanceKm: real("distance_km"),
+  pace: text("pace"),
   order: integer("order").notNull().default(0),
 });
 

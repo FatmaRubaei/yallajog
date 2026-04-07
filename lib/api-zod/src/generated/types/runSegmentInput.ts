@@ -9,5 +9,8 @@
 export interface RunSegmentInput {
   segmentId?: number;
   resolvedText: string;
+  durationMinutes?: number | null;
+  distanceKm?: number | null;
+  pace?: string | null;
   order: number;
 }

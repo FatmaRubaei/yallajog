@@ -5,8 +5,8 @@ import {
   useGetTraineeCurrentWeekPlan,
   useListWeekPlans,
   useListSegments,
-  useListSegmentTypes,
   useCreateWeekPlan,
+  useUpdateRun,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,11 +28,254 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, MapPin } from "lucide-react";
+import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
 const RUN_TYPES = ["Tempo", "Interval", "Recovery", "Up Hill", "Long Run"] as const;
+
+function formatDistance(km: number | null | undefined) {
+  if (km == null) return null;
+  if (km < 1) return `${Math.round(km * 1000)}m`;
+  return `${km}km`;
+}
+
+function SegmentDetails({ seg }: { seg: any }) {
+  const hasDuration = seg.durationMinutes != null;
+  const hasDistance = seg.distanceKm != null;
+  const hasPace = seg.pace != null && seg.pace !== "";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium">{seg.resolvedText}</span>
+      {(hasDuration || hasDistance || hasPace) && (
+        <div className="flex flex-wrap gap-1.5">
+          {hasDuration && (
+            <span className="inline-flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+              <Clock className="h-3 w-3" />
+              {seg.durationMinutes} min
+            </span>
+          )}
+          {hasDistance && (
+            <span className="inline-flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+              <Ruler className="h-3 w-3" />
+              {formatDistance(seg.distanceKm)}
+            </span>
+          )}
+          {hasPace && (
+            <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
+              <Gauge className="h-3 w-3" />
+              {seg.pace} /km
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type EditableSegment = {
+  id?: number;
+  resolvedText: string;
+  durationMinutes: string;
+  distanceKm: string;
+  pace: string;
+  order: number;
+};
+
+function EditRunDialog({
+  run,
+  weekPlanId,
+  onSuccess,
+}: {
+  run: any;
+  weekPlanId: number;
+  onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(run.name ?? "");
+  const [runType, setRunType] = useState(run.runType);
+  const [segments, setSegments] = useState<EditableSegment[]>(
+    (run.segments ?? []).map((s: any) => ({
+      id: s.id,
+      resolvedText: s.resolvedText,
+      durationMinutes: s.durationMinutes != null ? String(s.durationMinutes) : "",
+      distanceKm: s.distanceKm != null ? String(s.distanceKm) : "",
+      pace: s.pace ?? "",
+      order: s.order,
+    }))
+  );
+
+  const mutation = useUpdateRun();
+
+  function addSegment() {
+    setSegments([
+      ...segments,
+      { resolvedText: "", durationMinutes: "", distanceKm: "", pace: "", order: segments.length + 1 },
+    ]);
+  }
+
+  function removeSegment(idx: number) {
+    setSegments(segments.filter((_, i) => i !== idx).map((s, i) => ({ ...s, order: i + 1 })));
+  }
+
+  function updateSeg(idx: number, field: keyof EditableSegment, value: string) {
+    setSegments(segments.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await mutation.mutateAsync({
+        id: weekPlanId,
+        runId: run.id,
+        data: {
+          name: name || undefined,
+          runType,
+          order: run.order,
+          segments: segments.map((s, i) => ({
+            segmentId: undefined,
+            resolvedText: s.resolvedText,
+            durationMinutes: s.durationMinutes !== "" ? Number(s.durationMinutes) : null,
+            distanceKm: s.distanceKm !== "" ? Number(s.distanceKm) : null,
+            pace: s.pace !== "" ? s.pace : null,
+            order: i + 1,
+          })),
+        },
+      });
+      toast({ title: "Run updated" });
+      setOpen(false);
+      onSuccess();
+    } catch {
+      toast({ title: "Failed to update run", variant: "destructive" });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 px-2">
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Run</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Run Name</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Optional name"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Type</Label>
+              <Select value={runType} onValueChange={setRunType}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {RUN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm">Segments</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addSegment}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add Segment
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {segments.map((seg, idx) => (
+                <div key={idx} className="border rounded-lg p-3 space-y-2 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">Segment {idx + 1}</span>
+                    {segments.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-destructive hover:text-destructive"
+                        onClick={() => removeSegment(idx)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Description *</Label>
+                    <Input
+                      required
+                      value={seg.resolvedText}
+                      onChange={(e) => updateSeg(idx, "resolvedText", e.target.value)}
+                      placeholder="e.g. 800m at 4:40 pace"
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> Duration (min)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.5}
+                        value={seg.durationMinutes}
+                        onChange={(e) => updateSeg(idx, "durationMinutes", e.target.value)}
+                        placeholder="e.g. 8"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1">
+                        <Ruler className="h-3 w-3" /> Distance (km)
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.001}
+                        value={seg.distanceKm}
+                        onChange={(e) => updateSeg(idx, "distanceKm", e.target.value)}
+                        placeholder="e.g. 0.8"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1">
+                        <Gauge className="h-3 w-3" /> Pace (min/km)
+                      </Label>
+                      <Input
+                        value={seg.pace}
+                        onChange={(e) => updateSeg(idx, "pace", e.target.value)}
+                        placeholder="e.g. 4:40"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function TraineeCard({ trainee }: { trainee: any }) {
   return (
@@ -98,7 +341,6 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
     monday.setDate(d.getDate() - ((day + 6) % 7));
     return monday.toISOString().slice(0, 10);
   });
-  const [runsPerWeek, setRunsPerWeek] = useState("3");
   const [notes, setNotes] = useState("");
   const [runs, setRuns] = useState([
     { name: "", runType: "Tempo" as string, order: 1, segmentIds: [] as number[] },
@@ -121,7 +363,6 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
         data: {
           traineeId,
           weekStart,
-          runsPerWeek: Number(runsPerWeek),
           notes: notes || undefined,
           runs: runs.map((r) => ({
             name: r.name || undefined,
@@ -134,7 +375,7 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
       toast({ title: "Week plan created" });
       setOpen(false);
       onSuccess();
-    } catch (err) {
+    } catch {
       toast({ title: "Failed to create plan", variant: "destructive" });
     }
   }
@@ -151,10 +392,6 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
             <div className="space-y-1">
               <Label>Week Start (Monday) *</Label>
               <Input type="date" required value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label>Runs / week</Label>
-              <Input type="number" min={1} max={7} value={runsPerWeek} onChange={(e) => setRunsPerWeek(e.target.value)} />
             </div>
           </div>
 
@@ -282,24 +519,34 @@ export function TraineeWeekPlanner() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Week of {currentPlan.weekStart}</CardTitle>
-                <Badge>{currentPlan.runsPerWeek ?? 0} runs</Badge>
+                <Badge>{currentPlan.runs?.length ?? 0} runs</Badge>
               </div>
             </CardHeader>
             <CardContent>
-              {currentPlan.runs?.length === 0 ? (
+              {(currentPlan.runs?.length ?? 0) === 0 ? (
                 <p className="text-sm text-muted-foreground">No runs in this plan.</p>
               ) : (
-                <div className="space-y-2">
-                  {currentPlan.runs?.map((run, idx) => (
-                    <div key={run.id} className="flex items-start gap-2 text-sm p-2 rounded bg-muted/40">
-                      <span className="font-medium text-muted-foreground w-6 shrink-0">R{run.order}</span>
-                      <div className="flex-1">
-                        <span className="font-medium">{run.name ?? run.runType}</span>
-                        <span className="text-xs text-muted-foreground ml-2">{run.runType}</span>
-                        {run.segments?.length ? (
-                          <p className="text-xs text-muted-foreground mt-0.5">{run.segments.length} segment(s)</p>
-                        ) : null}
+                <div className="space-y-3">
+                  {currentPlan.runs?.map((run) => (
+                    <div key={run.id} className="rounded-lg border bg-muted/30 overflow-hidden">
+                      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-muted-foreground w-6">R{run.order}</span>
+                          <span className="font-semibold text-sm">{run.name ?? run.runType}</span>
+                          <Badge variant="outline" className="text-xs">{run.runType}</Badge>
+                        </div>
+                        <EditRunDialog run={run} weekPlanId={currentPlan.id} onSuccess={refetch} />
                       </div>
+                      {(run.segments ?? []).length > 0 && (
+                        <div className="divide-y">
+                          {(run.segments ?? []).map((seg, si) => (
+                            <div key={seg.id ?? si} className="px-4 py-2.5 flex items-start gap-2">
+                              <span className="text-xs text-muted-foreground w-4 mt-0.5 shrink-0">{si + 1}.</span>
+                              <SegmentDetails seg={seg} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -323,7 +570,7 @@ export function TraineeWeekPlanner() {
                     <div>
                       <p className="font-medium text-sm">Week of {plan.weekStart}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {plan.runs?.length ?? 0} runs planned · {plan.runsPerWeek ?? 0} target/week
+                        {plan.runs?.length ?? 0} runs planned
                       </p>
                     </div>
                     <div className="flex gap-2">

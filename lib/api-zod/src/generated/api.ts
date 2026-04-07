@@ -427,6 +427,9 @@ export const GetWeekPlanResponse = zod.object({
             segmentName: zod.string().optional(),
             segmentTemplate: zod.string().optional(),
             resolvedText: zod.string(),
+            durationMinutes: zod.number().nullable().optional(),
+            distanceKm: zod.number().nullable().optional(),
+            pace: zod.string().nullable().optional(),
             order: zod.number(),
           }),
         )
@@ -482,6 +485,9 @@ export const AddRunToWeekPlanBody = zod.object({
       zod.object({
         segmentId: zod.number().optional(),
         resolvedText: zod.string(),
+        durationMinutes: zod.number().nullable().optional(),
+        distanceKm: zod.number().nullable().optional(),
+        pace: zod.string().nullable().optional(),
         order: zod.number(),
       }),
     )
@@ -505,6 +511,9 @@ export const UpdateRunBody = zod.object({
       zod.object({
         segmentId: zod.number().optional(),
         resolvedText: zod.string(),
+        durationMinutes: zod.number().nullable().optional(),
+        distanceKm: zod.number().nullable().optional(),
+        pace: zod.string().nullable().optional(),
         order: zod.number(),
       }),
     )
@@ -526,6 +535,9 @@ export const UpdateRunResponse = zod.object({
         segmentName: zod.string().optional(),
         segmentTemplate: zod.string().optional(),
         resolvedText: zod.string(),
+        durationMinutes: zod.number().nullable().optional(),
+        distanceKm: zod.number().nullable().optional(),
+        pace: zod.string().nullable().optional(),
         order: zod.number(),
       }),
     )
@@ -773,6 +785,9 @@ export const GetTraineeCurrentWeekPlanResponse = zod.object({
             segmentName: zod.string().optional(),
             segmentTemplate: zod.string().optional(),
             resolvedText: zod.string(),
+            durationMinutes: zod.number().nullable().optional(),
+            distanceKm: zod.number().nullable().optional(),
+            pace: zod.string().nullable().optional(),
             order: zod.number(),
           }),
         )
