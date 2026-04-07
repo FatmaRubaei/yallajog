@@ -17,3 +17,9 @@ id = "5cAAlwyOUi8c-21qQzOny"
 uri = "file://trainer-app-source.tar.gz"
 type = "unspecified"
 title = "Trainer App Source Code (api-server + trainer-web + lib)"
+
+[[outputs]]
+id = "6Jb4jX_Jfjb-FMbY9LMnf"
+uri = "file://trainer-app-local.tar.gz"
+type = "unspecified"
+title = "Trainer App — Ready for Local Setup"
