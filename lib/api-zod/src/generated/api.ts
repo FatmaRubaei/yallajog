@@ -430,6 +430,7 @@ export const GetWeekPlanResponse = zod.object({
             durationMinutes: zod.number().nullable().optional(),
             distanceKm: zod.number().nullable().optional(),
             pace: zod.string().nullable().optional(),
+            completed: zod.boolean(),
             order: zod.number(),
           }),
         )
@@ -488,6 +489,7 @@ export const AddRunToWeekPlanBody = zod.object({
         durationMinutes: zod.number().nullable().optional(),
         distanceKm: zod.number().nullable().optional(),
         pace: zod.string().nullable().optional(),
+        completed: zod.boolean().optional(),
         order: zod.number(),
       }),
     )
@@ -514,6 +516,7 @@ export const UpdateRunBody = zod.object({
         durationMinutes: zod.number().nullable().optional(),
         distanceKm: zod.number().nullable().optional(),
         pace: zod.string().nullable().optional(),
+        completed: zod.boolean().optional(),
         order: zod.number(),
       }),
     )
@@ -538,6 +541,7 @@ export const UpdateRunResponse = zod.object({
         durationMinutes: zod.number().nullable().optional(),
         distanceKm: zod.number().nullable().optional(),
         pace: zod.string().nullable().optional(),
+        completed: zod.boolean().optional(),
         order: zod.number(),
       }),
     )
@@ -788,6 +792,7 @@ export const GetTraineeCurrentWeekPlanResponse = zod.object({
             durationMinutes: zod.number().nullable().optional(),
             distanceKm: zod.number().nullable().optional(),
             pace: zod.string().nullable().optional(),
+            completed: zod.boolean(),
             order: zod.number(),
           }),
         )

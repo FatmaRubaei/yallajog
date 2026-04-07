@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, date, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, date, timestamp, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { traineesTable } from "./trainees";
@@ -28,6 +28,7 @@ export const runSegmentsTable = pgTable("run_segments", {
   durationMinutes: real("duration_minutes"),
   distanceKm: real("distance_km"),
   pace: text("pace"),
+  completed: boolean("completed").notNull().default(false),
   order: integer("order").notNull().default(0),
 });
 

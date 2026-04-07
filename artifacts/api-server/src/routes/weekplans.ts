@@ -107,6 +107,7 @@ router.post("/:id/runs", async (req, res) => {
         durationMinutes: s.durationMinutes ?? null,
         distanceKm: s.distanceKm ?? null,
         pace: s.pace ?? null,
+        completed: s.completed ?? false,
         order: s.order,
       }))
     );
@@ -131,6 +132,7 @@ router.put("/:id/runs/:runId", async (req, res) => {
           durationMinutes: s.durationMinutes ?? null,
           distanceKm: s.distanceKm ?? null,
           pace: s.pace ?? null,
+          completed: s.completed ?? false,
           order: s.order,
         }))
       );
@@ -143,6 +145,18 @@ router.delete("/:id/runs/:runId", async (req, res) => {
   const runId = Number(req.params.runId);
   await db.delete(runsTable).where(eq(runsTable.id, runId));
   res.status(204).end();
+});
+
+router.patch("/:id/runs/:runId/segments/:segId", async (req, res) => {
+  const segId = Number(req.params.segId);
+  const { completed } = req.body;
+  const [seg] = await db
+    .update(runSegmentsTable)
+    .set({ completed: Boolean(completed) })
+    .where(eq(runSegmentsTable.id, segId))
+    .returning();
+  if (!seg) return res.status(404).json({ error: "Not found" });
+  res.json(seg);
 });
 
 export const currentWeekPlanRouter = Router({ mergeParams: true });

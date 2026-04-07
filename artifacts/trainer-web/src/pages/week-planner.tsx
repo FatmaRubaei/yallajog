@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler } from "lucide-react";
+import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
@@ -40,36 +40,85 @@ function formatDistance(km: number | null | undefined) {
   return `${km}km`;
 }
 
-function SegmentDetails({ seg }: { seg: any }) {
+function SegmentDetails({ seg, completed }: { seg: any; completed: boolean }) {
   const hasDuration = seg.durationMinutes != null;
   const hasDistance = seg.distanceKm != null;
   const hasPace = seg.pace != null && seg.pace !== "";
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium">{seg.resolvedText}</span>
+      <span className={`text-sm font-medium transition-all ${completed ? "line-through text-muted-foreground" : ""}`}>
+        {seg.resolvedText}
+      </span>
       {(hasDuration || hasDistance || hasPace) && (
         <div className="flex flex-wrap gap-1.5">
           {hasDuration && (
-            <span className="inline-flex items-center gap-1 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-opacity ${completed ? "opacity-40" : "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"}`}>
               <Clock className="h-3 w-3" />
               {seg.durationMinutes} min
             </span>
           )}
           {hasDistance && (
-            <span className="inline-flex items-center gap-1 text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-opacity ${completed ? "opacity-40" : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"}`}>
               <Ruler className="h-3 w-3" />
               {formatDistance(seg.distanceKm)}
             </span>
           )}
           {hasPace && (
-            <span className="inline-flex items-center gap-1 text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full transition-opacity ${completed ? "opacity-40" : "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"}`}>
               <Gauge className="h-3 w-3" />
               {seg.pace} /km
             </span>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SegmentRow({
+  seg,
+  weekPlanId,
+  runId,
+}: {
+  seg: any;
+  weekPlanId: number;
+  runId: number;
+}) {
+  const [completed, setCompleted] = useState<boolean>(seg.completed ?? false);
+  const [busy, setBusy] = useState(false);
+
+  async function handleToggle() {
+    if (busy) return;
+    const next = !completed;
+    setBusy(true);
+    setCompleted(next);
+    try {
+      await fetch(`/api/week-plans/${weekPlanId}/runs/${runId}/segments/${seg.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: next }),
+      });
+    } catch {
+      setCompleted(!next);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={`px-4 py-2.5 flex items-start gap-3 transition-colors ${completed ? "bg-muted/20" : ""}`}>
+      <button
+        onClick={handleToggle}
+        disabled={busy}
+        className="mt-0.5 shrink-0 transition-colors disabled:opacity-50"
+        aria-label={completed ? "Mark incomplete" : "Mark complete"}
+      >
+        {completed
+          ? <CheckCircle2 className="h-5 w-5 text-green-500" />
+          : <Circle className="h-5 w-5 text-muted-foreground hover:text-primary" />}
+      </button>
+      <SegmentDetails seg={seg} completed={completed} />
     </div>
   );
 }
@@ -540,10 +589,12 @@ export function TraineeWeekPlanner() {
                       {(run.segments ?? []).length > 0 && (
                         <div className="divide-y">
                           {(run.segments ?? []).map((seg, si) => (
-                            <div key={seg.id ?? si} className="px-4 py-2.5 flex items-start gap-2">
-                              <span className="text-xs text-muted-foreground w-4 mt-0.5 shrink-0">{si + 1}.</span>
-                              <SegmentDetails seg={seg} />
-                            </div>
+                            <SegmentRow
+                              key={seg.id ?? si}
+                              seg={seg}
+                              weekPlanId={currentPlan.id}
+                              runId={run.id}
+                            />
                           ))}
                         </div>
                       )}
