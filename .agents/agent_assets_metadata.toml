@@ -1,8 +1,13 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "0uB4uYmeuZFuxj1jRzRQh"
 uri = "file://artifacts/trainee-mobile/assets/images/icon.png"
 type = "image"
 title = "generated_image"
+
+[[outputs]]
+id = "5u8OS06ZyoSGxcyeStkRy"
+uri = "file://running-trainer-app.tar.gz"
+type = "unspecified"
+title = "Running Trainer App — Full Source Code"
