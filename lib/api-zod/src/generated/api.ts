@@ -388,7 +388,7 @@ export const DeleteSegmentTypeParams = zod.object({
  */
 export const ListWeekPlansQueryParams = zod.object({
   traineeId: zod.coerce.number().optional(),
-  weekStart: zod.date().optional(),
+  weekStart: zod.string().optional(),
 });
 
 export const ListWeekPlansResponseItem = zod.object({
@@ -407,8 +407,14 @@ export const ListWeekPlansResponse = zod.array(ListWeekPlansResponseItem);
  */
 export const CreateWeekPlanBody = zod.object({
   traineeId: zod.number(),
-  weekStart: zod.coerce.date(),
+  weekStart: zod.string(),
   notes: zod.string().optional(),
+  runs: zod.array(zod.object({
+    name: zod.string().optional(),
+    runType: zod.string(),
+    order: zod.number(),
+    segmentIds: zod.array(zod.number()).optional(),
+  })).optional(),
 });
 
 /**
@@ -464,7 +470,7 @@ export const UpdateWeekPlanParams = zod.object({
 
 export const UpdateWeekPlanBody = zod.object({
   traineeId: zod.number(),
-  weekStart: zod.coerce.date(),
+  weekStart: zod.string(),
   notes: zod.string().optional(),
 });
 
