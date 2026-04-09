@@ -23,3 +23,15 @@ id = "6Jb4jX_Jfjb-FMbY9LMnf"
 uri = "file://trainer-app-local.tar.gz"
 type = "unspecified"
 title = "Trainer App — Local Setup (fixed)"
+
+[[outputs]]
+id = "JZMhHcW1MQa9AGB4AGpVU"
+uri = "file://downloads/api.ts.txt"
+type = "text"
+title = "api.ts — lib/api-zod/src/generated/"
+
+[[outputs]]
+id = "62CqzF5UEqn9IXkLz7OWf"
+uri = "file://downloads/week-planner.tsx.txt"
+type = "text"
+title = "week-planner.tsx — artifacts/trainer-web/src/pages/"
