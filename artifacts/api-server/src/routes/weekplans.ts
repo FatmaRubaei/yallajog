@@ -195,9 +195,13 @@ currentWeekPlanRouter.get("/", async (req, res) => {
   const now = new Date();
   const day = now.getDay();
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(now.setDate(diff));
+  const monday = new Date(now);
+  monday.setDate(diff);
   monday.setHours(0, 0, 0, 0);
-  const mondayStr = monday.toISOString().split("T")[0];
+  const year = monday.getFullYear();
+  const month = String(monday.getMonth() + 1).padStart(2, "0");
+  const date = String(monday.getDate()).padStart(2, "0");
+  const mondayStr = `${year}-${month}-${date}`;
   const plans = await db.select().from(weekPlansTable).where(
     and(eq(weekPlansTable.traineeId, id), sql`${weekPlansTable.weekStart} = ${mondayStr}`)
   ).orderBy(desc(weekPlansTable.id));
