@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { weekPlansTable, runsTable, runSegmentsTable, traineesTable, segmentsTable } from "@workspace/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { weekPlansTable, runsTable, runSegmentsTable, traineesTable, segmentsTable, segmentTypesTable } from "@workspace/db/schema";
+import { eq, and, sql, desc } from "drizzle-orm";
 import {
   ListWeekPlansQueryParams,
   CreateWeekPlanBody,
@@ -67,7 +67,34 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const body = CreateWeekPlanBody.parse(req.body);
-  const [plan] = await db.insert(weekPlansTable).values(body as any).returning();
+  const { runs: runsInput, ...planData } = body as any;
+  const [plan] = await db.insert(weekPlansTable).values(planData).returning();
+  if (runsInput && runsInput.length > 0) {
+    for (const r of runsInput) {
+      const { segmentIds, ...runData } = r;
+      const [run] = await db.insert(runsTable).values({ weekPlanId: plan.id, ...runData }).returning();
+      if (segmentIds && segmentIds.length > 0) {
+        const segRows = await Promise.all(
+          segmentIds.map(async (sid: number, idx: number) => {
+            const [seg] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, sid));
+            let typeName: string | null = null;
+            if (seg?.typeId) {
+              const [st] = await db.select().from(segmentTypesTable).where(eq(segmentTypesTable.id, seg.typeId));
+              typeName = st?.name ?? null;
+            }
+            return {
+              runId: run.id,
+              segmentId: sid,
+              resolvedText: seg?.name ?? "",
+              segmentType: typeName,
+              order: idx + 1,
+            };
+          })
+        );
+        await db.insert(runSegmentsTable).values(segRows);
+      }
+    }
+  }
   const detail = await buildWeekPlanDetail(plan);
   res.status(201).json(detail);
 });
@@ -168,12 +195,16 @@ currentWeekPlanRouter.get("/", async (req, res) => {
   const now = new Date();
   const day = now.getDay();
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(now.setDate(diff));
+  const monday = new Date(now);
+  monday.setDate(diff);
   monday.setHours(0, 0, 0, 0);
-  const mondayStr = monday.toISOString().split("T")[0];
+  const year = monday.getFullYear();
+  const month = String(monday.getMonth() + 1).padStart(2, "0");
+  const date = String(monday.getDate()).padStart(2, "0");
+  const mondayStr = `${year}-${month}-${date}`;
   const plans = await db.select().from(weekPlansTable).where(
     and(eq(weekPlansTable.traineeId, id), sql`${weekPlansTable.weekStart} = ${mondayStr}`)
-  );
+  ).orderBy(desc(weekPlansTable.id));
   if (plans.length === 0) return res.status(404).json({ error: "No plan for current week" });
   res.json(await buildWeekPlanDetail(plans[0]));
 });

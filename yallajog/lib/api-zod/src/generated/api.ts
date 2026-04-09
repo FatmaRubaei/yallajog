@@ -257,9 +257,11 @@ export const ListSegmentsResponseItem = zod.object({
   name: zod.string(),
   type: zod.string(),
   typeId: zod.number().optional(),
-  template: zod.string(),
+  template: zod.string().optional(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
+  defaultDurationMinutes: zod.number().nullable().optional(),
+  defaultDistanceKm: zod.number().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 export const ListSegmentsResponse = zod.array(ListSegmentsResponseItem);
@@ -269,10 +271,12 @@ export const ListSegmentsResponse = zod.array(ListSegmentsResponseItem);
  */
 export const CreateSegmentBody = zod.object({
   name: zod.string(),
-  typeId: zod.number().optional(),
-  template: zod.string(),
+  typeId: zod.number().nullable().optional(),
+  template: zod.string().optional(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
+  defaultDurationMinutes: zod.number().nullable().optional(),
+  defaultDistanceKm: zod.number().nullable().optional(),
 });
 
 /**
@@ -287,9 +291,11 @@ export const GetSegmentResponse = zod.object({
   name: zod.string(),
   type: zod.string(),
   typeId: zod.number().optional(),
-  template: zod.string(),
+  template: zod.string().optional(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
+  defaultDurationMinutes: zod.number().nullable().optional(),
+  defaultDistanceKm: zod.number().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 
@@ -302,10 +308,12 @@ export const UpdateSegmentParams = zod.object({
 
 export const UpdateSegmentBody = zod.object({
   name: zod.string(),
-  typeId: zod.number().optional(),
-  template: zod.string(),
+  typeId: zod.number().nullable().optional(),
+  template: zod.string().optional(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
+  defaultDurationMinutes: zod.number().nullable().optional(),
+  defaultDistanceKm: zod.number().nullable().optional(),
 });
 
 export const UpdateSegmentResponse = zod.object({
@@ -313,9 +321,11 @@ export const UpdateSegmentResponse = zod.object({
   name: zod.string(),
   type: zod.string(),
   typeId: zod.number().optional(),
-  template: zod.string(),
+  template: zod.string().optional(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
+  defaultDurationMinutes: zod.number().nullable().optional(),
+  defaultDistanceKm: zod.number().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 
@@ -333,6 +343,7 @@ export const ListSegmentTypesResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   description: zod.string().optional(),
+  color: zod.string().nullable().optional(),
 });
 export const ListSegmentTypesResponse = zod.array(ListSegmentTypesResponseItem);
 
@@ -342,6 +353,7 @@ export const ListSegmentTypesResponse = zod.array(ListSegmentTypesResponseItem);
 export const CreateSegmentTypeBody = zod.object({
   name: zod.string(),
   description: zod.string().optional(),
+  color: zod.string().optional(),
 });
 
 /**
@@ -354,12 +366,14 @@ export const UpdateSegmentTypeParams = zod.object({
 export const UpdateSegmentTypeBody = zod.object({
   name: zod.string(),
   description: zod.string().optional(),
+  color: zod.string().optional(),
 });
 
 export const UpdateSegmentTypeResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   description: zod.string().optional(),
+  color: zod.string().nullable().optional(),
 });
 
 /**
@@ -374,7 +388,7 @@ export const DeleteSegmentTypeParams = zod.object({
  */
 export const ListWeekPlansQueryParams = zod.object({
   traineeId: zod.coerce.number().optional(),
-  weekStart: zod.date().optional(),
+  weekStart: zod.string().optional(),
 });
 
 export const ListWeekPlansResponseItem = zod.object({
@@ -393,8 +407,14 @@ export const ListWeekPlansResponse = zod.array(ListWeekPlansResponseItem);
  */
 export const CreateWeekPlanBody = zod.object({
   traineeId: zod.number(),
-  weekStart: zod.coerce.date(),
+  weekStart: zod.string(),
   notes: zod.string().optional(),
+  runs: zod.array(zod.object({
+    name: zod.string().optional(),
+    runType: zod.string(),
+    order: zod.number(),
+    segmentIds: zod.array(zod.number()).optional(),
+  })).optional(),
 });
 
 /**
@@ -450,7 +470,7 @@ export const UpdateWeekPlanParams = zod.object({
 
 export const UpdateWeekPlanBody = zod.object({
   traineeId: zod.number(),
-  weekStart: zod.coerce.date(),
+  weekStart: zod.string(),
   notes: zod.string().optional(),
 });
 

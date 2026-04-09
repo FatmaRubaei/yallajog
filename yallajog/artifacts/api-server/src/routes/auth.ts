@@ -36,11 +36,14 @@ router.post("/register", async (req, res) => {
   (req.session as any).trainerName = trainer.name;
   (req.session as any).trainerEmail = trainer.email;
 
-  res.status(201).json({
-    id: trainer.id,
-    name: trainer.name,
-    email: trainer.email,
-    createdAt: trainer.createdAt,
+  req.session.save((err) => {
+    if (err) return res.status(500).json({ error: "Session save failed" });
+    res.status(201).json({
+      id: trainer.id,
+      name: trainer.name,
+      email: trainer.email,
+      createdAt: trainer.createdAt,
+    });
   });
 });
 
@@ -61,11 +64,14 @@ router.post("/login", async (req, res) => {
   (req.session as any).trainerName = trainer.name;
   (req.session as any).trainerEmail = trainer.email;
 
-  res.json({
-    id: trainer.id,
-    name: trainer.name,
-    email: trainer.email,
-    createdAt: trainer.createdAt,
+  req.session.save((err) => {
+    if (err) return res.status(500).json({ error: "Session save failed" });
+    res.json({
+      id: trainer.id,
+      name: trainer.name,
+      email: trainer.email,
+      createdAt: trainer.createdAt,
+    });
   });
 });
 

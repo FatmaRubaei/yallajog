@@ -64634,18 +64634,22 @@ var ListSegmentsResponseItem = objectType({
   name: stringType(),
   type: stringType(),
   typeId: numberType().optional(),
-  template: stringType(),
+  template: stringType().optional(),
   description: stringType().optional(),
   isPersonal: booleanType().optional(),
+  defaultDurationMinutes: numberType().nullable().optional(),
+  defaultDistanceKm: numberType().nullable().optional(),
   createdAt: coerce.date()
 });
 var ListSegmentsResponse = arrayType(ListSegmentsResponseItem);
 var CreateSegmentBody = objectType({
   name: stringType(),
-  typeId: numberType().optional(),
-  template: stringType(),
+  typeId: numberType().nullable().optional(),
+  template: stringType().optional(),
   description: stringType().optional(),
-  isPersonal: booleanType().optional()
+  isPersonal: booleanType().optional(),
+  defaultDurationMinutes: numberType().nullable().optional(),
+  defaultDistanceKm: numberType().nullable().optional()
 });
 var GetSegmentParams = objectType({
   id: coerce.number()
@@ -64655,9 +64659,11 @@ var GetSegmentResponse = objectType({
   name: stringType(),
   type: stringType(),
   typeId: numberType().optional(),
-  template: stringType(),
+  template: stringType().optional(),
   description: stringType().optional(),
   isPersonal: booleanType().optional(),
+  defaultDurationMinutes: numberType().nullable().optional(),
+  defaultDistanceKm: numberType().nullable().optional(),
   createdAt: coerce.date()
 });
 var UpdateSegmentParams = objectType({
@@ -64665,19 +64671,23 @@ var UpdateSegmentParams = objectType({
 });
 var UpdateSegmentBody = objectType({
   name: stringType(),
-  typeId: numberType().optional(),
-  template: stringType(),
+  typeId: numberType().nullable().optional(),
+  template: stringType().optional(),
   description: stringType().optional(),
-  isPersonal: booleanType().optional()
+  isPersonal: booleanType().optional(),
+  defaultDurationMinutes: numberType().nullable().optional(),
+  defaultDistanceKm: numberType().nullable().optional()
 });
 var UpdateSegmentResponse = objectType({
   id: numberType(),
   name: stringType(),
   type: stringType(),
   typeId: numberType().optional(),
-  template: stringType(),
+  template: stringType().optional(),
   description: stringType().optional(),
   isPersonal: booleanType().optional(),
+  defaultDurationMinutes: numberType().nullable().optional(),
+  defaultDistanceKm: numberType().nullable().optional(),
   createdAt: coerce.date()
 });
 var DeleteSegmentParams = objectType({
@@ -64686,31 +64696,35 @@ var DeleteSegmentParams = objectType({
 var ListSegmentTypesResponseItem = objectType({
   id: numberType(),
   name: stringType(),
-  description: stringType().optional()
+  description: stringType().optional(),
+  color: stringType().nullable().optional()
 });
 var ListSegmentTypesResponse = arrayType(ListSegmentTypesResponseItem);
 var CreateSegmentTypeBody = objectType({
   name: stringType(),
-  description: stringType().optional()
+  description: stringType().optional(),
+  color: stringType().optional()
 });
 var UpdateSegmentTypeParams = objectType({
   id: coerce.number()
 });
 var UpdateSegmentTypeBody = objectType({
   name: stringType(),
-  description: stringType().optional()
+  description: stringType().optional(),
+  color: stringType().optional()
 });
 var UpdateSegmentTypeResponse = objectType({
   id: numberType(),
   name: stringType(),
-  description: stringType().optional()
+  description: stringType().optional(),
+  color: stringType().nullable().optional()
 });
 var DeleteSegmentTypeParams = objectType({
   id: coerce.number()
 });
 var ListWeekPlansQueryParams = objectType({
   traineeId: coerce.number().optional(),
-  weekStart: dateType().optional()
+  weekStart: stringType().optional()
 });
 var ListWeekPlansResponseItem = objectType({
   id: numberType(),
@@ -64724,8 +64738,14 @@ var ListWeekPlansResponseItem = objectType({
 var ListWeekPlansResponse = arrayType(ListWeekPlansResponseItem);
 var CreateWeekPlanBody = objectType({
   traineeId: numberType(),
-  weekStart: coerce.date(),
-  notes: stringType().optional()
+  weekStart: stringType(),
+  notes: stringType().optional(),
+  runs: arrayType(objectType({
+    name: stringType().optional(),
+    runType: stringType(),
+    order: numberType(),
+    segmentIds: arrayType(numberType()).optional()
+  })).optional()
 });
 var GetWeekPlanParams = objectType({
   id: coerce.number()
@@ -64769,7 +64789,7 @@ var UpdateWeekPlanParams = objectType({
 });
 var UpdateWeekPlanBody = objectType({
   traineeId: numberType(),
-  weekStart: coerce.date(),
+  weekStart: stringType(),
   notes: stringType().optional()
 });
 var UpdateWeekPlanResponse = objectType({
@@ -85223,15 +85243,18 @@ var insertTransactionSchema = createInsertSchema(transactionsTable).omit({ id: t
 var segmentTypesTable = pgTable("segment_types", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  description: text("description")
+  description: text("description"),
+  color: text("color")
 });
 var segmentsTable = pgTable("segments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   typeId: integer("type_id").references(() => segmentTypesTable.id, { onDelete: "set null" }),
-  template: text("template").notNull(),
+  template: text("template").notNull().default(""),
   description: text("description"),
   isPersonal: boolean("is_personal").notNull().default(false),
+  defaultDurationMinutes: real("default_duration_minutes"),
+  defaultDistanceKm: real("default_distance_km"),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var insertSegmentTypeSchema = createInsertSchema(segmentTypesTable).omit({ id: true });
@@ -85327,11 +85350,14 @@ router2.post("/register", async (req, res) => {
   req.session.trainerId = trainer.id;
   req.session.trainerName = trainer.name;
   req.session.trainerEmail = trainer.email;
-  res.status(201).json({
-    id: trainer.id,
-    name: trainer.name,
-    email: trainer.email,
-    createdAt: trainer.createdAt
+  req.session.save((err) => {
+    if (err) return res.status(500).json({ error: "Session save failed" });
+    res.status(201).json({
+      id: trainer.id,
+      name: trainer.name,
+      email: trainer.email,
+      createdAt: trainer.createdAt
+    });
   });
 });
 router2.post("/login", async (req, res) => {
@@ -85350,11 +85376,14 @@ router2.post("/login", async (req, res) => {
   req.session.trainerId = trainer.id;
   req.session.trainerName = trainer.name;
   req.session.trainerEmail = trainer.email;
-  res.json({
-    id: trainer.id,
-    name: trainer.name,
-    email: trainer.email,
-    createdAt: trainer.createdAt
+  req.session.save((err) => {
+    if (err) return res.status(500).json({ error: "Session save failed" });
+    res.json({
+      id: trainer.id,
+      name: trainer.name,
+      email: trainer.email,
+      createdAt: trainer.createdAt
+    });
   });
 });
 router2.post("/logout", (req, res) => {
@@ -85678,7 +85707,34 @@ router7.get("/", async (req, res) => {
 });
 router7.post("/", async (req, res) => {
   const body = CreateWeekPlanBody.parse(req.body);
-  const [plan] = await db.insert(weekPlansTable).values(body).returning();
+  const { runs: runsInput, ...planData } = body;
+  const [plan] = await db.insert(weekPlansTable).values(planData).returning();
+  if (runsInput && runsInput.length > 0) {
+    for (const r of runsInput) {
+      const { segmentIds, ...runData } = r;
+      const [run] = await db.insert(runsTable).values({ weekPlanId: plan.id, ...runData }).returning();
+      if (segmentIds && segmentIds.length > 0) {
+        const segRows = await Promise.all(
+          segmentIds.map(async (sid, idx) => {
+            const [seg] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, sid));
+            let typeName = null;
+            if (seg?.typeId) {
+              const [st] = await db.select().from(segmentTypesTable).where(eq(segmentTypesTable.id, seg.typeId));
+              typeName = st?.name ?? null;
+            }
+            return {
+              runId: run.id,
+              segmentId: sid,
+              resolvedText: seg?.name ?? "",
+              segmentType: typeName,
+              order: idx + 1
+            };
+          })
+        );
+        await db.insert(runSegmentsTable).values(segRows);
+      }
+    }
+  }
   const detail = await buildWeekPlanDetail(plan);
   res.status(201).json(detail);
 });
@@ -85766,12 +85822,16 @@ currentWeekPlanRouter.get("/", async (req, res) => {
   const now = /* @__PURE__ */ new Date();
   const day = now.getDay();
   const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(now.setDate(diff));
+  const monday = new Date(now);
+  monday.setDate(diff);
   monday.setHours(0, 0, 0, 0);
-  const mondayStr = monday.toISOString().split("T")[0];
+  const year = monday.getFullYear();
+  const month = String(monday.getMonth() + 1).padStart(2, "0");
+  const date6 = String(monday.getDate()).padStart(2, "0");
+  const mondayStr = `${year}-${month}-${date6}`;
   const plans = await db.select().from(weekPlansTable).where(
     and(eq(weekPlansTable.traineeId, id), sql`${weekPlansTable.weekStart} = ${mondayStr}`)
-  );
+  ).orderBy(desc(weekPlansTable.id));
   if (plans.length === 0) return res.status(404).json({ error: "No plan for current week" });
   res.json(await buildWeekPlanDetail(plans[0]));
 });
@@ -86318,7 +86378,8 @@ app.use(import_express13.default.urlencoded({ extended: true }));
 app.use(
   (0, import_express_session.default)({
     store: new PgStore({
-      conString: process.env["DATABASE_URL"]
+      conString: process.env["DATABASE_URL"],
+      createTableIfMissing: true
     }),
     secret: process.env["SESSION_SECRET"] ?? "dev-secret-change-me",
     resave: false,
