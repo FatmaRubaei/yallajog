@@ -35,3 +35,9 @@ id = "62CqzF5UEqn9IXkLz7OWf"
 uri = "file://downloads/week-planner.tsx.txt"
 type = "text"
 title = "week-planner.tsx — artifacts/trainer-web/src/pages/"
+
+[[outputs]]
+id = "03w4p2KplVz1AGANLXIX8"
+uri = "file://downloads/vite.config.ts.txt"
+type = "text"
+title = "vite.config.ts — artifacts/trainer-web/"
