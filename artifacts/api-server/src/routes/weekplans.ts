@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { weekPlansTable, runsTable, runSegmentsTable, traineesTable, segmentsTable, segmentTypesTable } from "@workspace/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import {
   ListWeekPlansQueryParams,
   CreateWeekPlanBody,
@@ -200,7 +200,7 @@ currentWeekPlanRouter.get("/", async (req, res) => {
   const mondayStr = monday.toISOString().split("T")[0];
   const plans = await db.select().from(weekPlansTable).where(
     and(eq(weekPlansTable.traineeId, id), sql`${weekPlansTable.weekStart} = ${mondayStr}`)
-  );
+  ).orderBy(desc(weekPlansTable.id));
   if (plans.length === 0) return res.status(404).json({ error: "No plan for current week" });
   res.json(await buildWeekPlanDetail(plans[0]));
 });

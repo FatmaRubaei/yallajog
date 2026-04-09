@@ -661,7 +661,7 @@ export function TraineeWeekPlanner() {
                     <div>
                       <p className="font-medium text-sm">Week of {plan.weekStart}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {plan.runs?.length ?? 0} runs planned
+                        {plan.runsCount ?? plan.runs?.length ?? 0} runs planned
                       </p>
                     </div>
                     <div className="flex gap-2">
