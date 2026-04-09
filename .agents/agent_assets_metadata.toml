@@ -41,3 +41,9 @@ id = "03w4p2KplVz1AGANLXIX8"
 uri = "file://downloads/vite.config.ts.txt"
 type = "text"
 title = "vite.config.ts — artifacts/trainer-web/ (updated)"
+
+[[outputs]]
+id = "V3Ubpk_TUH6yzUsnuK7tT"
+uri = "file://downloads/weekplans.txt"
+type = "text"
+title = "weekplans.ts (fixed timezone)"
