@@ -53,3 +53,9 @@ id = "Ux_rHpn3l9-bt4loSMsTa"
 uri = "file://downloads/auth.txt"
 type = "text"
 title = "auth.ts (session.save fix)"
+
+[[outputs]]
+id = "hIFJJ15GtOvKuYRJMY1tR"
+uri = "file://downloads/runbook.txt"
+type = "text"
+title = "Yallajog Runbook — Run, Change & Deploy"

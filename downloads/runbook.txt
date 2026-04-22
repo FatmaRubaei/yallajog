@@ -1,0 +1,148 @@
+================================================================
+YALLAJOG TRAINER APP — RUNBOOK
+================================================================
+
+================================================================
+1. LOCAL DEVELOPMENT — FIRST TIME SETUP
+================================================================
+
+Prerequisites:
+  - Node.js + pnpm installed
+  - PostgreSQL 16 installed (Homebrew)
+
+Step 1: Start PostgreSQL
+  brew services start postgresql@16
+
+Step 2: Create the database (first time only)
+  createdb yallajog
+
+Step 3: Push the schema (first time only, or after schema changes)
+  DATABASE_URL=postgresql://localhost:5432/yallajog pnpm --filter @workspace/db run push
+  (type "yes" when prompted)
+
+Step 4: Create the session table (first time only)
+  psql yallajog -c "CREATE TABLE IF NOT EXISTS \"session\" (\"sid\" varchar NOT NULL COLLATE \"default\", \"sess\" json NOT NULL, \"expire\" timestamp(6) NOT NULL, CONSTRAINT \"session_pkey\" PRIMARY KEY (\"sid\") NOT DEFERRABLE INITIALLY IMMEDIATE);"
+  psql yallajog -c "CREATE INDEX IF NOT EXISTS \"IDX_session_expire\" ON \"session\" (\"expire\");"
+
+Step 5: Install dependencies (first time only, or after package changes)
+  pnpm install
+
+================================================================
+2. LOCAL DEVELOPMENT — DAILY STARTUP
+================================================================
+
+Terminal 1 — API server:
+  PORT=8080 DATABASE_URL=postgresql://localhost:5432/yallajog SESSION_SECRET=localsecret pnpm --filter @workspace/api-server run dev
+
+Terminal 2 — Frontend:
+  pnpm --filter @workspace/trainer-web run dev
+
+Open browser:
+  http://localhost:3000
+
+================================================================
+3. LOCAL DEVELOPMENT — AFTER CODE CHANGES
+================================================================
+
+A) Changed API code (files in artifacts/api-server/src/):
+   The dev server auto-reloads. No action needed.
+   If it does not reload: Ctrl+C in Terminal 1, then restart the API command above.
+
+B) Changed frontend code (files in artifacts/trainer-web/src/):
+   Vite auto-reloads in the browser. No action needed.
+
+C) Changed DB schema (files in lib/db/src/schema/):
+   Run: DATABASE_URL=postgresql://localhost:5432/yallajog pnpm --filter @workspace/db run push
+   Then restart the API server.
+
+D) Added/removed npm packages:
+   Run: pnpm install
+   Then restart both servers.
+
+================================================================
+4. DATABASE — USEFUL COMMANDS
+================================================================
+
+Open database shell:
+  psql yallajog
+
+Useful queries inside psql:
+  \dt                        list all tables
+  \d trainees                show table columns
+  SELECT * FROM trainers;    view trainer accounts
+  SELECT * FROM trainees;    view trainees
+  SELECT * FROM week_plans;  view week plans
+  SELECT * FROM runs;        view runs
+  \q                         quit
+
+================================================================
+5. PRODUCTION DEPLOYMENT
+================================================================
+
+Step 1: Push your code changes to git (from your Mac):
+  git add .
+  git commit -m "your message"
+  git push
+
+Step 2: SSH into the server:
+  ssh fatimah@185.227.108.185
+
+Step 3: Pull latest code:
+  cd /var/www/yallajog.com/yallajog
+  git pull
+
+Step 4: Build the API:
+  cd yallajog
+  pnpm --filter @workspace/api-server run build
+
+Step 5: Restart the API:
+  sudo fuser -k 8080/tcp
+  sudo pm2 delete all
+  pm2 start /var/www/yallajog.com/yallajog/yallajog/ecosystem.config.cjs
+
+Step 6: Verify:
+  sudo pm2 list
+  (trainer-api should show status: online)
+
+Step 7 (only if frontend code changed): Rebuild frontend:
+  PORT=3001 BASE_PATH="/trainer" pnpm --filter @workspace/trainer-web run build
+
+================================================================
+6. PRODUCTION — TROUBLESHOOTING
+================================================================
+
+Check API logs:
+  sudo pm2 list
+  sudo pm2 logs trainer-api
+
+Restart API without rebuilding:
+  sudo fuser -k 8080/tcp
+  sudo pm2 delete all
+  pm2 start /var/www/yallajog.com/yallajog/yallajog/ecosystem.config.cjs
+
+If git pull fails with "permission denied":
+  sudo chown -R fatimah:fatimah /var/www/yallajog.com/yallajog/.git
+  git pull
+
+If git pull fails with "local changes conflict":
+  cp yallajog/artifacts/api-server/.env /tmp/api-server.env.bak
+  git reset --hard HEAD
+  git pull
+  cp /tmp/api-server.env.bak yallajog/artifacts/api-server/.env
+
+================================================================
+7. PROJECT STRUCTURE
+================================================================
+
+artifacts/api-server/     Node.js/Express backend (port 8080)
+artifacts/trainer-web/    React trainer dashboard (port 3000 local)
+artifacts/trainee-mobile/ React Native / Expo mobile app
+lib/db/                   Drizzle ORM schema and database client
+lib/api-zod/              Shared Zod validation schemas
+
+Server IP:      185.227.108.185
+Production URL: crm.yallajog.com
+Local URL:      http://localhost:3000
+DB name:        yallajog (local) / see .env (production)
+
+================================================================
