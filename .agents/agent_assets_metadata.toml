@@ -143,3 +143,9 @@ id = "w1zLp2NvHyBKjYm4WBv6r"
 uri = "file://index-server.txt"
 type = "text"
 title = "index.ts (server entry) — rename after download"
+
+[[outputs]]
+id = "muxkf9ixU-czSAAS2V5aR"
+uri = "file://trainees.txt"
+type = "text"
+title = "trainees.tsx — rename after download"
