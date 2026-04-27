@@ -585,6 +585,56 @@ function EditRunDialog({
   );
 }
 
+function LastPlanBriefForTrainee({ traineeId }: { traineeId: number }) {
+  const { data: allPlans = [] } = useListWeekPlans({ traineeId });
+  const [briefOpen, setBriefOpen] = useState(false);
+  const lastPlan = [...allPlans].sort((a, b) => b.weekStart.localeCompare(a.weekStart))[0] ?? null;
+  if (!lastPlan) return null;
+  return (
+    <Collapsible open={briefOpen} onOpenChange={setBriefOpen}>
+      <div className="rounded-lg border border-dashed border-muted-foreground/30 overflow-hidden">
+        <CollapsibleTrigger className="w-full text-left">
+          <div className="flex items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
+            {briefOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs font-semibold text-muted-foreground">Last plan — Week of {lastPlan.weekStart}</span>
+            <span className="ms-auto text-xs text-muted-foreground">{(lastPlan as any).runs?.length ?? 0} run{((lastPlan as any).runs?.length ?? 0) !== 1 ? "s" : ""}</span>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="border-t px-3 py-2 space-y-2 bg-muted/10">
+            {(lastPlan as any).notes && (
+              <p className="text-xs text-muted-foreground italic"><span className="font-semibold not-italic">Notes:</span> {(lastPlan as any).notes}</p>
+            )}
+            {((lastPlan as any).runs ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground">No runs recorded.</p>
+            ) : (
+              <div className="space-y-2">
+                {((lastPlan as any).runs as any[]).map((run: any, ri: number) => (
+                  <div key={run.id ?? ri} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs h-5 font-medium">{run.runType}</Badge>
+                      {run.name && <span className="text-xs font-medium">{run.name}</span>}
+                    </div>
+                    <ul className="ps-4 space-y-0.5">
+                      {((run.segments ?? []) as any[]).map((seg: any, si: number) => (
+                        <li key={seg.id ?? si} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                          <span className="mt-1 h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                          <span>{seg.resolvedText}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
 function GlobalCreatePlanDialog({ trainees, onSuccess }: { trainees: any[]; onSuccess: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -594,10 +644,57 @@ function GlobalCreatePlanDialog({ trainees, onSuccess }: { trainees: any[]; onSu
     const day = d.getDay();
     const monday = new Date(d);
     monday.setDate(d.getDate() - ((day + 6) % 7));
-    return monday.toISOString().slice(0, 10);
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, "0");
+    const dd = String(monday.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
   });
   const [notes, setNotes] = useState("");
+  const [runs, setRuns] = useState<CreateRun[]>([
+    { name: "", runType: "Tempo", order: 1, segments: [emptySegment(1)] },
+  ]);
   const mutation = useCreateWeekPlan();
+  const { data: librarySegments = [] } = useListSegments({});
+
+  function reset() {
+    setSelectedTraineeId("");
+    setNotes("");
+    setRuns([{ name: "", runType: "Tempo", order: 1, segments: [emptySegment(1)] }]);
+  }
+
+  function addRun() {
+    setRuns([...runs, { name: "", runType: "Recovery", order: runs.length + 1, segments: [emptySegment(1)] }]);
+  }
+
+  function removeRun(idx: number) {
+    setRuns(runs.filter((_, i) => i !== idx).map((r, i) => ({ ...r, order: i + 1 })));
+  }
+
+  function updateRunField(runIdx: number, field: "name" | "runType", value: string) {
+    setRuns(runs.map((r, i) => i === runIdx ? { ...r, [field]: value } : r));
+  }
+
+  function addSegmentToRun(runIdx: number) {
+    setRuns(runs.map((r, i) => i === runIdx ? { ...r, segments: [...r.segments, emptySegment(r.segments.length + 1)] } : r));
+  }
+
+  function removeSegmentFromRun(runIdx: number, segIdx: number) {
+    setRuns(runs.map((r, i) => i === runIdx
+      ? { ...r, segments: r.segments.filter((_, si) => si !== segIdx).map((s, si) => ({ ...s, order: si + 1 })) }
+      : r));
+  }
+
+  function updateSegInRun(runIdx: number, segIdx: number, field: keyof EditableSegment, value: string) {
+    setRuns((prev) => prev.map((r, i) => i === runIdx
+      ? { ...r, segments: r.segments.map((s, si) => si === segIdx ? { ...s, [field]: value } : s) }
+      : r));
+  }
+
+  function updateSegInRunBulk(runIdx: number, segIdx: number, updates: Partial<EditableSegment>) {
+    setRuns((prev) => prev.map((r, i) => i === runIdx
+      ? { ...r, segments: r.segments.map((s, si) => si === segIdx ? { ...s, ...updates } : s) }
+      : r));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -608,13 +705,17 @@ function GlobalCreatePlanDialog({ trainees, onSuccess }: { trainees: any[]; onSu
           traineeId: Number(selectedTraineeId),
           weekStart,
           notes: notes || undefined,
-          runs: [],
-        },
+          runs: runs.map((r) => ({
+            name: r.name || undefined,
+            runType: r.runType,
+            order: r.order,
+            segments: r.segments.filter((s) => s.resolvedText.trim() !== "").map(editableToSegment),
+          })),
+        } as any,
       });
-      toast({ title: "Plan created" });
+      toast({ title: "Week plan created" });
       setOpen(false);
-      setNotes("");
-      setSelectedTraineeId("");
+      reset();
       onSuccess();
     } catch {
       toast({ title: "Failed to create plan", variant: "destructive" });
@@ -622,17 +723,18 @@ function GlobalCreatePlanDialog({ trainees, onSuccess }: { trainees: any[]; onSu
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 me-2" /> Create Plan
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Training Plan</DialogTitle>
+          <DialogTitle>New Week Plan</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-1">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
+          {/* Trainee selector */}
           <div className="space-y-1">
             <Label>Trainee *</Label>
             <Select value={selectedTraineeId} onValueChange={setSelectedTraineeId}>
@@ -648,25 +750,83 @@ function GlobalCreatePlanDialog({ trainees, onSuccess }: { trainees: any[]; onSu
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label>Week Start *</Label>
-            <Input
-              type="date"
-              required
-              value={weekStart}
-              onChange={(e) => setWeekStart(e.target.value)}
-            />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Week Start (Monday) *</Label>
+              <Input type="date" required value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
+            </div>
           </div>
+
           <div className="space-y-1">
             <Label>Notes</Label>
-            <Input
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional notes..."
-            />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="General notes for this week..." rows={2} />
           </div>
+
+          {/* Last plan brief for selected trainee */}
+          {selectedTraineeId && <LastPlanBriefForTrainee traineeId={Number(selectedTraineeId)} />}
+
+          {/* Runs */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-base">Runs ({runs.length})</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addRun}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add Run
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {runs.map((run, runIdx) => (
+                <div key={runIdx} className="border rounded-xl p-3 space-y-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Run {run.order}</span>
+                    {runs.length > 1 && (
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => removeRun(runIdx)}>Remove Run</Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Run Name</Label>
+                      <Input value={run.name} onChange={(e) => updateRunField(runIdx, "name", e.target.value)} placeholder="Optional name" className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Type *</Label>
+                      <Select value={run.runType} onValueChange={(v) => updateRunField(runIdx, "runType", v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {RUN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs text-muted-foreground">Segments ({run.segments.length})</Label>
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => addSegmentToRun(runIdx)}>
+                        <Plus className="h-3 w-3 mr-1" /> Add Segment
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {run.segments.map((seg, segIdx) => (
+                        <SegmentForm
+                          key={segIdx}
+                          seg={seg}
+                          idx={segIdx}
+                          librarySegments={librarySegments}
+                          onUpdate={(_, field, value) => updateSegInRun(runIdx, segIdx, field, value)}
+                          onBulkUpdate={(_, updates) => updateSegInRunBulk(runIdx, segIdx, updates)}
+                          onRemove={() => removeSegmentFromRun(runIdx, segIdx)}
+                          showRemove={run.segments.length > 1}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => { setOpen(false); reset(); }}>Cancel</Button>
             <Button type="submit" disabled={!selectedTraineeId || mutation.isPending}>
               {mutation.isPending ? "Creating..." : "Create Plan"}
             </Button>
