@@ -189,11 +189,11 @@ function AddSegmentDialog({ types, onSuccess }: { types: any[]; onSuccess: () =>
                   placeholder="30"
                   className="border-0 shadow-none focus-visible:ring-0 text-center text-lg font-medium"
                 />
-                <span className="px-3 text-sm text-muted-foreground border-l bg-muted/40 h-full flex items-center py-2">/ km</span>
+                <span className="px-3 text-sm text-muted-foreground border-l bg-muted/40 h-full flex items-center py-2 whitespace-nowrap">/km</span>
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 pt-1">
+          <div className="grid grid-cols-2 gap-2 pt-1">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? "Creating..." : "Create"}

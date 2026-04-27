@@ -282,7 +282,7 @@ function SegmentForm({
             <Input type="number" min={0} max={59} value={seg.paceMin} onChange={(e) => onUpdate(idx, "paceMin", e.target.value)} placeholder="4" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
             <span className="text-xs font-semibold text-muted-foreground px-0.5">:</span>
             <Input type="number" min={0} max={59} value={seg.paceSec} onChange={(e) => onUpdate(idx, "paceSec", e.target.value)} placeholder="30" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
-            <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">/km</span>
+            <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center whitespace-nowrap">/km</span>
           </div>
         )}
       </div>
