@@ -7,6 +7,7 @@ import {
   useListWeekPlans,
   useGetTraineeCurrentWeekPlan,
 } from "@workspace/api-client-react";
+import { EditPlanDialog, CreateWeekPlanDialog } from "@/pages/week-planner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -218,32 +219,45 @@ function RunBlock({ run }: { run: any }) {
   );
 }
 
-function PlanCard({ plan, isCurrentWeek }: { plan: any; isCurrentWeek: boolean }) {
+function PlanCard({
+  plan,
+  isCurrentWeek,
+  traineeId,
+  onSuccess,
+}: {
+  plan: any;
+  isCurrentWeek: boolean;
+  traineeId: number;
+  onSuccess: () => void;
+}) {
   const [open, setOpen] = useState(isCurrentWeek);
   const runs: any[] = plan.runs ?? [];
   const totalSegments = runs.reduce((acc: number, r: any) => acc + (r.segments?.length ?? 0), 0);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="w-full">
-        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-left transition-colors hover:bg-muted/40 ${isCurrentWeek ? "border-primary/40 bg-primary/5" : "bg-card"}`}>
-          {open ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-          )}
-          <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="font-medium text-sm">Week of {plan.weekStart}</span>
-          {isCurrentWeek && (
-            <Badge className="text-xs h-5">Current</Badge>
-          )}
-          <div className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{runs.length} run{runs.length !== 1 ? "s" : ""}</span>
-            <span>·</span>
-            <span>{totalSegments} segment{totalSegments !== 1 ? "s" : ""}</span>
+      <div className={`flex items-center rounded-lg border transition-colors ${isCurrentWeek ? "border-primary/40 bg-primary/5" : "bg-card"}`}>
+        <CollapsibleTrigger className="flex-1 text-left hover:bg-muted/40 rounded-l-lg">
+          <div className="flex items-center gap-2 px-4 py-3">
+            {open ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            )}
+            <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="font-medium text-sm">Week of {plan.weekStart}</span>
+            {isCurrentWeek && <Badge className="text-xs h-5">Current</Badge>}
+            <div className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{runs.length} run{runs.length !== 1 ? "s" : ""}</span>
+              <span>·</span>
+              <span>{totalSegments} segment{totalSegments !== 1 ? "s" : ""}</span>
+            </div>
           </div>
+        </CollapsibleTrigger>
+        <div className="pe-2 shrink-0">
+          <EditPlanDialog plan={plan} traineeId={traineeId} onSuccess={onSuccess} />
         </div>
-      </CollapsibleTrigger>
+      </div>
 
       <CollapsibleContent>
         <div className="mt-2 space-y-2 ps-2">
@@ -274,8 +288,13 @@ export default function TraineeProfile() {
   const { data: trainee, isLoading } = useGetTrainee(traineeId);
   const { data: balance, refetch: refetchBalance } = useGetTraineeBalance(traineeId);
   const { data: transactions, refetch: refetchTx } = useListTraineeTransactions(traineeId);
-  const { data: allPlans } = useListWeekPlans({ traineeId });
-  const { data: currentPlan } = useGetTraineeCurrentWeekPlan(traineeId);
+  const { data: allPlans, refetch: refetchPlans } = useListWeekPlans({ traineeId });
+  const { data: currentPlan, refetch: refetchCurrent } = useGetTraineeCurrentWeekPlan(traineeId);
+
+  function refetchAllPlans() {
+    refetchPlans();
+    refetchCurrent();
+  }
 
   const sortedPlans = [...(allPlans ?? [])].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
 
@@ -403,20 +422,20 @@ export default function TraineeProfile() {
               {sortedPlans.length} plan{sortedPlans.length !== 1 ? "s" : ""} total
             </p>
           </div>
-          <Link href={`/week-planner/${traineeId}`}>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <ExternalLink className="h-3.5 w-3.5" /> Manage Plans
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <CreateWeekPlanDialog traineeId={traineeId} onSuccess={refetchAllPlans} />
+            <Link href={`/week-planner/${traineeId}`}>
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           {sortedPlans.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No training plans yet.</p>
-              <Link href={`/week-planner/${traineeId}`}>
-                <Button variant="outline" size="sm" className="mt-3">Create first plan</Button>
-              </Link>
             </div>
           ) : (
             <div className="space-y-2">
@@ -425,6 +444,8 @@ export default function TraineeProfile() {
                   key={plan.id}
                   plan={plan}
                   isCurrentWeek={currentPlan?.id === plan.id}
+                  traineeId={traineeId}
+                  onSuccess={refetchAllPlans}
                 />
               ))}
             </div>

@@ -636,7 +636,7 @@ type CreateRun = {
   segments: EditableSegment[];
 };
 
-function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onSuccess: () => void }) {
+export function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onSuccess: () => void }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [weekStart, setWeekStart] = useState(() => {
@@ -919,7 +919,7 @@ type EditRun = {
   segments: EditableSegment[];
 };
 
-function EditPlanDialog({
+export function EditPlanDialog({
   plan,
   traineeId,
   onSuccess,
