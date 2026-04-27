@@ -28,7 +28,7 @@ title = "Trainer App — Local Setup (fixed)"
 id = "JZMhHcW1MQa9AGB4AGpVU"
 uri = "file://downloads/api.ts.txt"
 type = "text"
-title = "api.ts — lib/api-zod/src/generated/"
+title = "lib/api-zod/src/generated/api.ts"
 
 [[outputs]]
 id = "62CqzF5UEqn9IXkLz7OWf"
@@ -46,16 +46,22 @@ title = "vite.config.ts — artifacts/trainer-web/ (updated)"
 id = "V3Ubpk_TUH6yzUsnuK7tT"
 uri = "file://downloads/weekplans.txt"
 type = "text"
-title = "weekplans.ts (timezone fix)"
+title = "artifacts/api-server/src/routes/weekplans.ts"
 
 [[outputs]]
 id = "Ux_rHpn3l9-bt4loSMsTa"
 uri = "file://downloads/auth.txt"
 type = "text"
-title = "auth.ts (session.save fix)"
+title = "artifacts/api-server/src/routes/auth.ts"
 
 [[outputs]]
 id = "hIFJJ15GtOvKuYRJMY1tR"
 uri = "file://downloads/runbook.txt"
 type = "text"
 title = "Yallajog Runbook — Run, Change & Deploy"
+
+[[outputs]]
+id = "-NGeedl-SonnyiAxlgqet"
+uri = "file://downloads/week-planner.txt"
+type = "text"
+title = "artifacts/trainer-web/src/pages/week-planner.tsx"
