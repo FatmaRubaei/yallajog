@@ -32,7 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
@@ -656,6 +657,11 @@ export function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: numb
 
   const mutation = useCreateWeekPlan();
   const { data: librarySegments = [] } = useListSegments({});
+  const { data: allPlans = [] } = useListWeekPlans({ traineeId });
+  const [briefOpen, setBriefOpen] = useState(false);
+
+  const lastPlan = [...allPlans]
+    .sort((a, b) => b.weekStart.localeCompare(a.weekStart))[0] ?? null;
 
   function addRun() {
     setRuns([...runs, { name: "", runType: "Recovery", order: runs.length + 1, segments: [emptySegment(1)] }]);
@@ -736,6 +742,71 @@ export function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: numb
             <Label>Notes</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="General notes for this week..." rows={2} />
           </div>
+
+          {/* Last week brief */}
+          {lastPlan && (
+            <Collapsible open={briefOpen} onOpenChange={setBriefOpen}>
+              <div className="rounded-lg border border-dashed border-muted-foreground/30 overflow-hidden">
+                <CollapsibleTrigger className="w-full text-left">
+                  <div className="flex items-center gap-2 px-3 py-2 hover:bg-muted/40 transition-colors">
+                    {briefOpen ? (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    )}
+                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Last plan — Week of {lastPlan.weekStart}
+                    </span>
+                    <span className="ms-auto text-xs text-muted-foreground">
+                      {(lastPlan as any).runs?.length ?? 0} run{((lastPlan as any).runs?.length ?? 0) !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="border-t px-3 py-2 space-y-2 bg-muted/10">
+                    {(lastPlan as any).notes && (
+                      <p className="text-xs text-muted-foreground italic">
+                        <span className="font-semibold not-italic">Notes:</span> {(lastPlan as any).notes}
+                      </p>
+                    )}
+                    {((lastPlan as any).runs ?? []).length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No runs recorded.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {((lastPlan as any).runs as any[]).map((run: any, ri: number) => (
+                          <div key={run.id ?? ri} className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs h-5 font-medium">{run.runType}</Badge>
+                              {run.name && <span className="text-xs font-medium">{run.name}</span>}
+                            </div>
+                            <ul className="ps-4 space-y-0.5">
+                              {((run.segments ?? []) as any[]).map((seg: any, si: number) => (
+                                <li key={seg.id ?? si} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                  <span className="mt-1 h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                                  <span>{seg.resolvedText}
+                                    {(seg.distance || seg.duration || seg.pace) && (
+                                      <span className="text-muted-foreground/60 ms-1">
+                                        {[
+                                          seg.distance && `${seg.distance} km`,
+                                          seg.duration && `${seg.duration} min`,
+                                          seg.pace && `${seg.pace} /km`,
+                                        ].filter(Boolean).join(" · ")}
+                                      </span>
+                                    )}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-3">
