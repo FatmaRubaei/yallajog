@@ -95,3 +95,9 @@ id = "McZI_rlOMaMm0GkpVrbQH"
 uri = "file://week-planner-update.tar.gz"
 type = "unspecified"
 title = "week-planner.tsx (updated)"
+
+[[outputs]]
+id = "EJuIm__l-jizcwhuv1-FZ"
+uri = "file://week-planner.txt"
+type = "text"
+title = "week-planner.tsx (rename to .tsx after download)"
