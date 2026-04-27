@@ -7,6 +7,8 @@ import {
   useListSegments,
   useCreateWeekPlan,
   useUpdateRun,
+  useUpdateWeekPlan,
+  useDeleteWeekPlan,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle } from "lucide-react";
+import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
@@ -907,6 +909,137 @@ function RunCard({
   );
 }
 
+function EditPlanDialog({
+  plan,
+  traineeId,
+  onSuccess,
+}: {
+  plan: any;
+  traineeId: number;
+  onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [weekStart, setWeekStart] = useState(plan.weekStart ?? "");
+  const [notes, setNotes] = useState(plan.notes ?? "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const updateMutation = useUpdateWeekPlan();
+  const deleteMutation = useDeleteWeekPlan();
+
+  function handleOpen(val: boolean) {
+    if (val) {
+      setWeekStart(plan.weekStart ?? "");
+      setNotes(plan.notes ?? "");
+      setConfirmDelete(false);
+    }
+    setOpen(val);
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await updateMutation.mutateAsync({
+        id: plan.id,
+        data: { traineeId, weekStart, notes: notes || undefined },
+      });
+      toast({ title: "Plan updated" });
+      setOpen(false);
+      onSuccess();
+    } catch {
+      toast({ title: "Failed to update plan", variant: "destructive" });
+    }
+  }
+
+  async function handleDelete() {
+    try {
+      await deleteMutation.mutateAsync({ id: plan.id });
+      toast({ title: "Plan deleted" });
+      setOpen(false);
+      onSuccess();
+    } catch {
+      toast({ title: "Failed to delete plan", variant: "destructive" });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 px-2">
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Edit Plan</DialogTitle>
+        </DialogHeader>
+        {confirmDelete ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Delete this plan? All runs and segments inside it will be permanently removed.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Yes, delete"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSave} className="space-y-4 mt-1">
+            <div className="space-y-1">
+              <Label className="text-xs">Week Start</Label>
+              <Input
+                type="date"
+                required
+                value={weekStart}
+                onChange={(e) => setWeekStart(e.target.value)}
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Notes</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes for this week..."
+                rows={3}
+                className="text-sm resize-none"
+              />
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete plan
+              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TraineeWeekPlanner() {
   const { t } = useTranslation();
   const { traineeId: traineeIdStr } = useParams<{ traineeId: string }>();
@@ -952,7 +1085,10 @@ export function TraineeWeekPlanner() {
                       <CardTitle className="text-base">Week of {plan.weekStart}</CardTitle>
                       {isCurrent && <Badge className="text-xs">Current</Badge>}
                     </div>
-                    <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
+                      <EditPlanDialog plan={plan} traineeId={traineeId} onSuccess={refetch} />
+                    </div>
                   </div>
                   {plan.notes && (
                     <p className="text-xs text-muted-foreground italic mt-0.5">{plan.notes}</p>
