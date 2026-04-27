@@ -9,6 +9,8 @@ import {
   useUpdateRun,
   useUpdateWeekPlan,
   useDeleteWeekPlan,
+  useAddRunToWeekPlan,
+  useDeleteRun,
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -909,6 +911,14 @@ function RunCard({
   );
 }
 
+type EditRun = {
+  id?: number;
+  name: string;
+  runType: string;
+  order: number;
+  segments: EditableSegment[];
+};
+
 function EditPlanDialog({
   plan,
   traineeId,
@@ -922,27 +932,130 @@ function EditPlanDialog({
   const [open, setOpen] = useState(false);
   const [weekStart, setWeekStart] = useState(plan.weekStart ?? "");
   const [notes, setNotes] = useState(plan.notes ?? "");
+  const [runs, setRuns] = useState<EditRun[]>([]);
+  const [removedRunIds, setRemovedRunIds] = useState<number[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const updateMutation = useUpdateWeekPlan();
-  const deleteMutation = useDeleteWeekPlan();
+  const { data: librarySegments = [] } = useListSegments({});
+  const updatePlanMutation = useUpdateWeekPlan();
+  const deletePlanMutation = useDeleteWeekPlan();
+  const updateRunMutation = useUpdateRun();
+  const addRunMutation = useAddRunToWeekPlan();
+  const deleteRunMutation = useDeleteRun();
+
+  function planToRuns(p: any): EditRun[] {
+    return (p.runs ?? []).map((r: any) => ({
+      id: r.id,
+      name: r.name ?? "",
+      runType: r.runType ?? "Recovery",
+      order: r.order,
+      segments: (r.segments ?? []).map(segmentToEditable),
+    }));
+  }
 
   function handleOpen(val: boolean) {
     if (val) {
       setWeekStart(plan.weekStart ?? "");
       setNotes(plan.notes ?? "");
+      setRuns(planToRuns(plan));
+      setRemovedRunIds([]);
       setConfirmDelete(false);
     }
     setOpen(val);
   }
 
+  function addRun() {
+    setRuns((prev) => [
+      ...prev,
+      { name: "", runType: "Recovery", order: prev.length + 1, segments: [emptySegment(1)] },
+    ]);
+  }
+
+  function removeRun(idx: number) {
+    const run = runs[idx];
+    if (run.id) setRemovedRunIds((prev) => [...prev, run.id!]);
+    setRuns((prev) =>
+      prev.filter((_, i) => i !== idx).map((r, i) => ({ ...r, order: i + 1 }))
+    );
+  }
+
+  function updateRunField(runIdx: number, field: "name" | "runType", value: string) {
+    setRuns((prev) => prev.map((r, i) => (i === runIdx ? { ...r, [field]: value } : r)));
+  }
+
+  function addSegmentToRun(runIdx: number) {
+    setRuns((prev) =>
+      prev.map((r, i) =>
+        i === runIdx ? { ...r, segments: [...r.segments, emptySegment(r.segments.length + 1)] } : r
+      )
+    );
+  }
+
+  function removeSegmentFromRun(runIdx: number, segIdx: number) {
+    setRuns((prev) =>
+      prev.map((r, i) =>
+        i === runIdx
+          ? {
+              ...r,
+              segments: r.segments
+                .filter((_, si) => si !== segIdx)
+                .map((s, si) => ({ ...s, order: si + 1 })),
+            }
+          : r
+      )
+    );
+  }
+
+  function updateSegInRun(runIdx: number, segIdx: number, field: keyof EditableSegment, value: string) {
+    setRuns((prev) =>
+      prev.map((r, i) =>
+        i === runIdx
+          ? { ...r, segments: r.segments.map((s, si) => (si === segIdx ? { ...s, [field]: value } : s)) }
+          : r
+      )
+    );
+  }
+
+  function updateSegInRunBulk(runIdx: number, segIdx: number, updates: Partial<EditableSegment>) {
+    setRuns((prev) =>
+      prev.map((r, i) =>
+        i === runIdx
+          ? { ...r, segments: r.segments.map((s, si) => (si === segIdx ? { ...s, ...updates } : s)) }
+          : r
+      )
+    );
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await updateMutation.mutateAsync({
+      await updatePlanMutation.mutateAsync({
         id: plan.id,
         data: { traineeId, weekStart, notes: notes || undefined },
       });
+
+      for (const runId of removedRunIds) {
+        await deleteRunMutation.mutateAsync({ id: plan.id, runId });
+      }
+
+      for (const run of runs) {
+        const segments = run.segments
+          .filter((s) => s.resolvedText.trim() !== "")
+          .map(editableToSegment);
+        if (run.id) {
+          await updateRunMutation.mutateAsync({
+            id: plan.id,
+            runId: run.id,
+            data: { name: run.name || undefined, runType: run.runType, order: run.order, segments },
+          });
+        } else {
+          await addRunMutation.mutateAsync({
+            id: plan.id,
+            data: { name: run.name || undefined, runType: run.runType, order: run.order, segments },
+          });
+        }
+      }
+
       toast({ title: "Plan updated" });
       setOpen(false);
       onSuccess();
@@ -953,7 +1066,7 @@ function EditPlanDialog({
 
   async function handleDelete() {
     try {
-      await deleteMutation.mutateAsync({ id: plan.id });
+      await deletePlanMutation.mutateAsync({ id: plan.id });
       toast({ title: "Plan deleted" });
       setOpen(false);
       onSuccess();
@@ -962,6 +1075,12 @@ function EditPlanDialog({
     }
   }
 
+  const isPending =
+    updatePlanMutation.isPending ||
+    updateRunMutation.isPending ||
+    addRunMutation.isPending ||
+    deleteRunMutation.isPending;
+
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogTrigger asChild>
@@ -969,10 +1088,11 @@ function EditPlanDialog({
           <Pencil className="h-3.5 w-3.5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Plan</DialogTitle>
         </DialogHeader>
+
         {confirmDelete ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -986,35 +1106,152 @@ function EditPlanDialog({
                 variant="destructive"
                 size="sm"
                 onClick={handleDelete}
-                disabled={deleteMutation.isPending}
+                disabled={deletePlanMutation.isPending}
               >
-                {deleteMutation.isPending ? "Deleting..." : "Yes, delete"}
+                {deletePlanMutation.isPending ? "Deleting..." : "Yes, delete"}
               </Button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSave} className="space-y-4 mt-1">
-            <div className="space-y-1">
-              <Label className="text-xs">Week Start</Label>
-              <Input
-                type="date"
-                required
-                value={weekStart}
-                onChange={(e) => setWeekStart(e.target.value)}
-                className="h-8 text-sm"
-              />
+          <form onSubmit={handleSave} className="space-y-5 mt-1">
+            {/* Plan metadata */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Week Start</Label>
+                <Input
+                  type="date"
+                  required
+                  value={weekStart}
+                  onChange={(e) => setWeekStart(e.target.value)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Notes</Label>
+                <Input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Optional notes..."
+                  className="h-8 text-sm"
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Notes</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Optional notes for this week..."
-                rows={3}
-                className="text-sm resize-none"
-              />
+
+            {/* Runs */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Runs ({runs.length})
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={addRun}
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Add Run
+                </Button>
+              </div>
+
+              {runs.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No runs yet — click Add Run to start.
+                </p>
+              )}
+
+              <div className="space-y-4">
+                {runs.map((run, runIdx) => (
+                  <div key={runIdx} className="border rounded-lg p-3 space-y-3 bg-muted/20">
+                    {/* Run header */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        Run {run.order}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => removeRun(runIdx)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+
+                    {/* Run fields */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Run Name</Label>
+                        <Input
+                          value={run.name}
+                          onChange={(e) => updateRunField(runIdx, "name", e.target.value)}
+                          placeholder="Optional name"
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Type</Label>
+                        <Select
+                          value={run.runType}
+                          onValueChange={(v) => updateRunField(runIdx, "runType", v)}
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {RUN_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>
+                                {t}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Segments */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Segments ({run.segments.length})
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => addSegmentToRun(runIdx)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add Segment
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {run.segments.map((seg, segIdx) => (
+                          <SegmentForm
+                            key={segIdx}
+                            seg={seg}
+                            idx={segIdx}
+                            librarySegments={librarySegments}
+                            onUpdate={(_, field, value) =>
+                              updateSegInRun(runIdx, segIdx, field, value)
+                            }
+                            onBulkUpdate={(_, updates) =>
+                              updateSegInRunBulk(runIdx, segIdx, updates)
+                            }
+                            onRemove={() => removeSegmentFromRun(runIdx, segIdx)}
+                            showRemove={run.segments.length > 1}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center justify-between pt-1">
+
+            {/* Footer actions */}
+            <div className="flex items-center justify-between pt-1 border-t">
               <Button
                 type="button"
                 variant="ghost"
@@ -1028,8 +1265,8 @@ function EditPlanDialog({
                 <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" size="sm" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? "Saving..." : "Save"}
+                <Button type="submit" size="sm" disabled={isPending}>
+                  {isPending ? "Saving..." : "Save"}
                 </Button>
               </div>
             </div>
