@@ -107,3 +107,9 @@ id = "bAiKPFuNhaFvI1VrAyYZP"
 uri = "file://weekplans.txt"
 type = "text"
 title = "weekplans.ts (API route) — rename after download"
+
+[[outputs]]
+id = "Q2Vym79G8aNAjcO44nqZo"
+uri = "file://trainee-profile.txt"
+type = "text"
+title = "trainee-profile.tsx — rename after download"
