@@ -71,7 +71,7 @@ router.post("/", async (req, res) => {
   const [plan] = await db.insert(weekPlansTable).values(planData).returning();
   if (runsInput && runsInput.length > 0) {
     for (const r of runsInput) {
-      const { segmentIds, ...runData } = r;
+      const { segmentIds, segments: inlineSegments, ...runData } = r;
       const [run] = await db.insert(runsTable).values({ weekPlanId: plan.id, ...runData }).returning();
       if (segmentIds && segmentIds.length > 0) {
         const segRows = await Promise.all(
@@ -92,6 +92,20 @@ router.post("/", async (req, res) => {
           })
         );
         await db.insert(runSegmentsTable).values(segRows);
+      } else if (inlineSegments && inlineSegments.length > 0) {
+        await db.insert(runSegmentsTable).values(
+          inlineSegments.map((s: any) => ({
+            runId: run.id,
+            segmentId: null,
+            resolvedText: s.resolvedText,
+            segmentType: s.segmentType ?? null,
+            durationMinutes: s.durationMinutes ?? null,
+            distanceKm: s.distanceKm ?? null,
+            pace: s.pace ?? null,
+            completed: false,
+            order: s.order,
+          }))
+        );
       }
     }
   }

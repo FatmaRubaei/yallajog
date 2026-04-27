@@ -4,7 +4,6 @@ import {
   useListTrainees,
   useGetTraineeCurrentWeekPlan,
   useListWeekPlans,
-  useListSegments,
   useCreateWeekPlan,
   useUpdateRun,
 } from "@workspace/api-client-react";
@@ -149,11 +148,149 @@ type EditableSegment = {
   id?: number;
   resolvedText: string;
   segmentType: string;
+  measurement: "duration" | "distance";
   durationMinutes: string;
   distanceKm: string;
-  pace: string;
+  intensityTarget: "none" | "pace";
+  paceMin: string;
+  paceSec: string;
   order: number;
 };
+
+function parsePace(pace: string | null | undefined): { min: string; sec: string } {
+  if (!pace) return { min: "", sec: "" };
+  const parts = pace.split(":");
+  return { min: parts[0] ?? "", sec: parts[1] ?? "00" };
+}
+
+function formatPace(min: string, sec: string): string | null {
+  if (!min && !sec) return null;
+  return `${min || "0"}:${(sec || "0").padStart(2, "0")}`;
+}
+
+function segmentToEditable(s: any): EditableSegment {
+  const pace = parsePace(s.pace);
+  return {
+    id: s.id,
+    resolvedText: s.resolvedText ?? "",
+    segmentType: s.segmentType ?? "",
+    measurement: s.distanceKm != null ? "distance" : "duration",
+    durationMinutes: s.durationMinutes != null ? String(s.durationMinutes) : "",
+    distanceKm: s.distanceKm != null ? String(s.distanceKm) : "",
+    intensityTarget: s.pace ? "pace" : "none",
+    paceMin: pace.min,
+    paceSec: pace.sec,
+    order: s.order ?? 1,
+  };
+}
+
+function editableToSegment(s: EditableSegment, i: number) {
+  return {
+    segmentId: undefined as undefined,
+    resolvedText: s.resolvedText,
+    segmentType: s.segmentType !== "" ? s.segmentType : null,
+    durationMinutes: s.measurement === "duration" && s.durationMinutes !== "" ? Number(s.durationMinutes) : null,
+    distanceKm: s.measurement === "distance" && s.distanceKm !== "" ? Number(s.distanceKm) : null,
+    pace: s.intensityTarget === "pace" ? formatPace(s.paceMin, s.paceSec) : null,
+    order: i + 1,
+  };
+}
+
+function emptySegment(order: number): EditableSegment {
+  return { resolvedText: "", segmentType: "", measurement: "duration", durationMinutes: "", distanceKm: "", intensityTarget: "none", paceMin: "", paceSec: "", order };
+}
+
+function SegmentForm({
+  seg,
+  idx,
+  onUpdate,
+  onRemove,
+  showRemove,
+}: {
+  seg: EditableSegment;
+  idx: number;
+  onUpdate: (idx: number, field: keyof EditableSegment, value: string) => void;
+  onRemove: () => void;
+  showRemove: boolean;
+}) {
+  return (
+    <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">Segment {idx + 1}</span>
+        {showRemove && (
+          <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive hover:text-destructive" onClick={onRemove}>
+            Remove
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Segment Type</Label>
+          <Select value={seg.segmentType || "__none__"} onValueChange={(v) => onUpdate(idx, "segmentType", v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No type" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No type</SelectItem>
+              {SEGMENT_TYPES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Description *</Label>
+          <Input required value={seg.resolvedText} onChange={(e) => onUpdate(idx, "resolvedText", e.target.value)} placeholder="e.g. 800m at tempo" className="h-8 text-sm" />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground">Measurement</Label>
+          <div className="flex gap-0.5 bg-muted rounded p-0.5">
+            <button type="button" onClick={() => onUpdate(idx, "measurement", "duration")}
+              className={`text-xs px-2 py-0.5 rounded transition-colors ${seg.measurement === "duration" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              Duration
+            </button>
+            <button type="button" onClick={() => onUpdate(idx, "measurement", "distance")}
+              className={`text-xs px-2 py-0.5 rounded transition-colors ${seg.measurement === "distance" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              Distance
+            </button>
+          </div>
+        </div>
+        {seg.measurement === "duration" ? (
+          <div className="flex items-center gap-2">
+            <Input type="number" min={0} step={0.5} value={seg.durationMinutes} onChange={(e) => onUpdate(idx, "durationMinutes", e.target.value)} placeholder="e.g. 8" className="h-8 text-sm w-28" />
+            <span className="text-xs text-muted-foreground">min</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Input type="number" min={0} step={0.001} value={seg.distanceKm} onChange={(e) => onUpdate(idx, "distanceKm", e.target.value)} placeholder="e.g. 0.8" className="h-8 text-sm w-28" />
+            <span className="text-xs text-muted-foreground">km</span>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-xs">Intensity Target</Label>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={seg.intensityTarget} onValueChange={(v) => onUpdate(idx, "intensityTarget", v)}>
+            <SelectTrigger className="h-8 text-sm w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No target</SelectItem>
+              <SelectItem value="pace">Pace (min/km)</SelectItem>
+            </SelectContent>
+          </Select>
+          {seg.intensityTarget === "pace" && (
+            <div className="flex items-center gap-1">
+              <Input type="number" min={0} max={59} value={seg.paceMin} onChange={(e) => onUpdate(idx, "paceMin", e.target.value)} placeholder="M" className="h-8 text-sm w-14" />
+              <span className="text-xs font-medium">:</span>
+              <Input type="number" min={0} max={59} value={seg.paceSec} onChange={(e) => onUpdate(idx, "paceSec", e.target.value)} placeholder="SS" className="h-8 text-sm w-14" />
+              <span className="text-xs text-muted-foreground">/km</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function EditRunDialog({
   run,
@@ -169,24 +306,13 @@ function EditRunDialog({
   const [name, setName] = useState(run.name ?? "");
   const [runType, setRunType] = useState(run.runType);
   const [segments, setSegments] = useState<EditableSegment[]>(
-    (run.segments ?? []).map((s: any) => ({
-      id: s.id,
-      resolvedText: s.resolvedText,
-      segmentType: s.segmentType ?? "",
-      durationMinutes: s.durationMinutes != null ? String(s.durationMinutes) : "",
-      distanceKm: s.distanceKm != null ? String(s.distanceKm) : "",
-      pace: s.pace ?? "",
-      order: s.order,
-    }))
+    (run.segments ?? []).map(segmentToEditable)
   );
 
   const mutation = useUpdateRun();
 
   function addSegment() {
-    setSegments([
-      ...segments,
-      { resolvedText: "", segmentType: "", durationMinutes: "", distanceKm: "", pace: "", order: segments.length + 1 },
-    ]);
+    setSegments([...segments, emptySegment(segments.length + 1)]);
   }
 
   function removeSegment(idx: number) {
@@ -207,15 +333,7 @@ function EditRunDialog({
           name: name || undefined,
           runType,
           order: run.order,
-          segments: segments.map((s, i) => ({
-            segmentId: undefined,
-            resolvedText: s.resolvedText,
-            segmentType: s.segmentType !== "" ? s.segmentType : null,
-            durationMinutes: s.durationMinutes !== "" ? Number(s.durationMinutes) : null,
-            distanceKm: s.distanceKm !== "" ? Number(s.distanceKm) : null,
-            pace: s.pace !== "" ? s.pace : null,
-            order: i + 1,
-          })),
+          segments: segments.map(editableToSegment),
         },
       });
       toast({ title: "Run updated" });
@@ -268,88 +386,14 @@ function EditRunDialog({
             </div>
             <div className="space-y-2">
               {segments.map((seg, idx) => (
-                <div key={idx} className="border rounded-lg p-3 space-y-2 bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Segment {idx + 1}</span>
-                    {segments.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs text-destructive hover:text-destructive"
-                        onClick={() => removeSegment(idx)}
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Segment Type</Label>
-                      <Select
-                        value={seg.segmentType || "__none__"}
-                        onValueChange={(v) => updateSeg(idx, "segmentType", v === "__none__" ? null : v)}
-                      >
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No type" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">No type</SelectItem>
-                          {SEGMENT_TYPES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Description *</Label>
-                      <Input
-                        required
-                        value={seg.resolvedText}
-                        onChange={(e) => updateSeg(idx, "resolvedText", e.target.value)}
-                        placeholder="e.g. 800m at 4:40 pace"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Duration (min)
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={seg.durationMinutes}
-                        onChange={(e) => updateSeg(idx, "durationMinutes", e.target.value)}
-                        placeholder="e.g. 8"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs flex items-center gap-1">
-                        <Ruler className="h-3 w-3" /> Distance (km)
-                      </Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.001}
-                        value={seg.distanceKm}
-                        onChange={(e) => updateSeg(idx, "distanceKm", e.target.value)}
-                        placeholder="e.g. 0.8"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs flex items-center gap-1">
-                        <Gauge className="h-3 w-3" /> Pace (min/km)
-                      </Label>
-                      <Input
-                        value={seg.pace}
-                        onChange={(e) => updateSeg(idx, "pace", e.target.value)}
-                        placeholder="e.g. 4:40"
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <SegmentForm
+                  key={idx}
+                  seg={seg}
+                  idx={idx}
+                  onUpdate={updateSeg}
+                  onRemove={() => removeSegment(idx)}
+                  showRemove={segments.length > 1}
+                />
               ))}
             </div>
           </div>
@@ -419,30 +463,59 @@ export function WeekPlannerList() {
   );
 }
 
+type CreateRun = {
+  name: string;
+  runType: string;
+  order: number;
+  segments: EditableSegment[];
+};
+
 function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onSuccess: () => void }) {
   const { toast } = useToast();
-  const { data: segments } = useListSegments({});
   const [open, setOpen] = useState(false);
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
     const day = d.getDay();
     const monday = new Date(d);
     monday.setDate(d.getDate() - ((day + 6) % 7));
-    return monday.toISOString().slice(0, 10);
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth() + 1).padStart(2, "0");
+    const dd = String(monday.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
   });
   const [notes, setNotes] = useState("");
-  const [runs, setRuns] = useState([
-    { name: "", runType: "Tempo" as string, order: 1, segmentIds: [] as number[] },
+  const [runs, setRuns] = useState<CreateRun[]>([
+    { name: "", runType: "Tempo", order: 1, segments: [emptySegment(1)] },
   ]);
 
   const mutation = useCreateWeekPlan();
 
   function addRun() {
-    setRuns([...runs, { name: "", runType: "Recovery", order: runs.length + 1, segmentIds: [] }]);
+    setRuns([...runs, { name: "", runType: "Recovery", order: runs.length + 1, segments: [emptySegment(1)] }]);
   }
 
   function removeRun(idx: number) {
     setRuns(runs.filter((_, i) => i !== idx).map((r, i) => ({ ...r, order: i + 1 })));
+  }
+
+  function updateRunField(runIdx: number, field: "name" | "runType", value: string) {
+    setRuns(runs.map((r, i) => i === runIdx ? { ...r, [field]: value } : r));
+  }
+
+  function addSegmentToRun(runIdx: number) {
+    setRuns(runs.map((r, i) => i === runIdx ? { ...r, segments: [...r.segments, emptySegment(r.segments.length + 1)] } : r));
+  }
+
+  function removeSegmentFromRun(runIdx: number, segIdx: number) {
+    setRuns(runs.map((r, i) => i === runIdx
+      ? { ...r, segments: r.segments.filter((_, si) => si !== segIdx).map((s, si) => ({ ...s, order: si + 1 })) }
+      : r));
+  }
+
+  function updateSegInRun(runIdx: number, segIdx: number, field: keyof EditableSegment, value: string) {
+    setRuns(runs.map((r, i) => i === runIdx
+      ? { ...r, segments: r.segments.map((s, si) => si === segIdx ? { ...s, [field]: value } : s) }
+      : r));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -457,12 +530,14 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
             name: r.name || undefined,
             runType: r.runType,
             order: r.order,
-            segmentIds: r.segmentIds,
+            segments: r.segments.filter((s) => s.resolvedText.trim() !== "").map(editableToSegment),
           })),
         } as any,
       });
       toast({ title: "Week plan created" });
       setOpen(false);
+      setRuns([{ name: "", runType: "Tempo", order: 1, segments: [emptySegment(1)] }]);
+      setNotes("");
       onSuccess();
     } catch {
       toast({ title: "Failed to create plan", variant: "destructive" });
@@ -474,7 +549,7 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
       <DialogTrigger asChild>
         <Button><Plus className="h-4 w-4 mr-2" /> Create Plan</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>New Week Plan</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 mt-2">
           <div className="grid grid-cols-2 gap-3">
@@ -496,28 +571,23 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add Run
               </Button>
             </div>
-            <div className="space-y-3">
-              {runs.map((run, idx) => (
-                <div key={idx} className="border rounded-lg p-3 space-y-2 bg-muted/30">
+            <div className="space-y-4">
+              {runs.map((run, runIdx) => (
+                <div key={runIdx} className="border rounded-xl p-3 space-y-3 bg-muted/20">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">Run {run.order}</span>
+                    <span className="text-sm font-semibold">Run {run.order}</span>
                     {runs.length > 1 && (
-                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => removeRun(idx)}>Remove</Button>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => removeRun(runIdx)}>Remove Run</Button>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Run Name</Label>
-                      <Input
-                        value={run.name}
-                        onChange={(e) => setRuns(runs.map((r, i) => i === idx ? { ...r, name: e.target.value } : r))}
-                        placeholder="Optional name"
-                        className="h-8 text-sm"
-                      />
+                      <Input value={run.name} onChange={(e) => updateRunField(runIdx, "name", e.target.value)} placeholder="Optional name" className="h-8 text-sm" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Type *</Label>
-                      <Select value={run.runType} onValueChange={(v) => setRuns(runs.map((r, i) => i === idx ? { ...r, runType: v } : r))}>
+                      <Select value={run.runType} onValueChange={(v) => updateRunField(runIdx, "runType", v)}>
                         <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {RUN_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -525,35 +595,27 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
                       </Select>
                     </div>
                   </div>
-                  {segments && segments.length > 0 && (
-                    <div className="space-y-1">
-                      <Label className="text-xs">Segments</Label>
-                      <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto border rounded p-2 bg-background">
-                        {segments.map((seg) => (
-                          <button
-                            type="button"
-                            key={seg.id}
-                            onClick={() => {
-                              const already = run.segmentIds.includes(seg.id);
-                              setRuns(runs.map((r, i) => i === idx ? {
-                                ...r,
-                                segmentIds: already
-                                  ? r.segmentIds.filter((id) => id !== seg.id)
-                                  : [...r.segmentIds, seg.id]
-                              } : r));
-                            }}
-                            className={`text-xs px-2 py-0.5 rounded border transition-colors ${
-                              run.segmentIds.includes(seg.id)
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "border-border hover:border-primary"
-                            }`}
-                          >
-                            {seg.name}
-                          </button>
-                        ))}
-                      </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="text-xs text-muted-foreground">Segments ({run.segments.length})</Label>
+                      <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => addSegmentToRun(runIdx)}>
+                        <Plus className="h-3 w-3 mr-1" /> Add Segment
+                      </Button>
                     </div>
-                  )}
+                    <div className="space-y-2">
+                      {run.segments.map((seg, segIdx) => (
+                        <SegmentForm
+                          key={segIdx}
+                          seg={seg}
+                          idx={segIdx}
+                          onUpdate={(_, field, value) => updateSegInRun(runIdx, segIdx, field, value)}
+                          onRemove={() => removeSegmentFromRun(runIdx, segIdx)}
+                          showRemove={run.segments.length > 1}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

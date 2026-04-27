@@ -414,6 +414,14 @@ export const CreateWeekPlanBody = zod.object({
     runType: zod.string(),
     order: zod.number(),
     segmentIds: zod.array(zod.number()).optional(),
+    segments: zod.array(zod.object({
+      resolvedText: zod.string(),
+      segmentType: zod.string().nullable().optional(),
+      durationMinutes: zod.number().nullable().optional(),
+      distanceKm: zod.number().nullable().optional(),
+      pace: zod.string().nullable().optional(),
+      order: zod.number(),
+    })).optional(),
   })).optional(),
 });
 
