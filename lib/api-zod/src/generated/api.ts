@@ -795,6 +795,19 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
       createdAt: zod.coerce.date(),
     }),
   ),
+  withoutPlan: zod.array(
+    zod.object({
+      id: zod.number(),
+      name: zod.string(),
+      city: zod.string().optional(),
+      planType: zod.enum(["free", "paid"]),
+      monthlyFee: zod.number().optional(),
+      balanceDue: zod.number().optional(),
+      hasActivityThisWeek: zod.boolean().optional(),
+      isPlannedThisWeek: zod.boolean().optional(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
 });
 
 /**

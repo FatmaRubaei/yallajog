@@ -325,6 +325,7 @@ export interface TraineesAttentionSummary {
   needingFeedback: Trainee[];
   inactiveThisWeek: Trainee[];
   withDueBalance: Trainee[];
+  withoutPlan: Trainee[];
 }
 
 export type ListTraineesParams = {

@@ -119,3 +119,15 @@ id = "DTK2q7sW9biKBjbXlMKpE"
 uri = "file://trainees-schema.txt"
 type = "text"
 title = "trainees.ts (DB schema) — rename after download"
+
+[[outputs]]
+id = "M4FELBekmapOqsRafdPry"
+uri = "file://dashboard.txt"
+type = "text"
+title = "dashboard.tsx (frontend) — rename after download"
+
+[[outputs]]
+id = "lj4ymy0KGZcUqVNysAN1U"
+uri = "file://dashboard-api.txt"
+type = "text"
+title = "dashboard.ts (API route) — rename after download"
