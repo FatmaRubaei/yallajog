@@ -7,7 +7,7 @@ import {
   useListWeekPlans,
   useGetTraineeCurrentWeekPlan,
 } from "@workspace/api-client-react";
-import { EditPlanDialog, CreateWeekPlanDialog } from "@/pages/week-planner";
+import { EditPlanDialog, CreateWeekPlanDialog, DeletePlanButton } from "@/pages/week-planner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -254,8 +254,9 @@ function PlanCard({
             </div>
           </div>
         </CollapsibleTrigger>
-        <div className="pe-2 shrink-0">
+        <div className="pe-2 shrink-0 flex items-center gap-1">
           <EditPlanDialog plan={plan} traineeId={traineeId} onSuccess={onSuccess} />
+          <DeletePlanButton planId={plan.id} weekStart={plan.weekStart} onSuccess={onSuccess} />
         </div>
       </div>
 

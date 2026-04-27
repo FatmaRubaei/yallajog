@@ -1277,6 +1277,60 @@ export function EditPlanDialog({
   );
 }
 
+export function DeletePlanButton({
+  planId,
+  weekStart,
+  onSuccess,
+}: {
+  planId: number;
+  weekStart: string;
+  onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const deleteMutation = useDeleteWeekPlan();
+
+  async function handleDelete() {
+    try {
+      await deleteMutation.mutateAsync({ id: planId });
+      toast({ title: "Plan deleted" });
+      setOpen(false);
+      onSuccess();
+    } catch {
+      toast({ title: "Failed to delete plan", variant: "destructive" });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Delete Plan</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Delete the plan for week of <strong>{weekStart}</strong>? All runs and segments inside it will be permanently removed.
+        </p>
+        <div className="flex gap-2 justify-end pt-2">
+          <Button variant="outline" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TraineeWeekPlanner() {
   const { t } = useTranslation();
   const { traineeId: traineeIdStr } = useParams<{ traineeId: string }>();
@@ -1325,6 +1379,7 @@ export function TraineeWeekPlanner() {
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
                       <EditPlanDialog plan={plan} traineeId={traineeId} onSuccess={refetch} />
+                      <DeletePlanButton planId={plan.id} weekStart={plan.weekStart} onSuccess={refetch} />
                     </div>
                   </div>
                   {plan.notes && (
