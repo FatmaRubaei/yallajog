@@ -72,6 +72,7 @@ function EditTraineeDialog({ trainee, onSuccess }: { trainee: any; onSuccess: ()
         birthdate: trainee.birthdate ? String(trainee.birthdate).slice(0, 10) : "",
         planType: trainee.planType ?? "free",
         runsPerWeek: trainee.runsPerWeek != null ? String(trainee.runsPerWeek) : "",
+        maxHr: trainee.maxHr != null ? String(trainee.maxHr) : "",
         targetHr: trainee.targetHr != null ? String(trainee.targetHr) : "",
         hrZone4: trainee.hrZone4 != null ? String(trainee.hrZone4) : "",
         hrZone5a: trainee.hrZone5a != null ? String(trainee.hrZone5a) : "",
@@ -110,6 +111,7 @@ function EditTraineeDialog({ trainee, onSuccess }: { trainee: any; onSuccess: ()
           email: form.email || undefined,
           birthdate: form.birthdate ? (form.birthdate as unknown as Date) : undefined,
           runsPerWeek: form.runsPerWeek ? Number(form.runsPerWeek) : undefined,
+          maxHr: form.maxHr ? Number(form.maxHr) : undefined,
           targetHr: form.targetHr ? Number(form.targetHr) : undefined,
           hrZone4: form.hrZone4 ? Number(form.hrZone4) : undefined,
           hrZone5a: form.hrZone5a ? Number(form.hrZone5a) : undefined,
@@ -190,6 +192,10 @@ function EditTraineeDialog({ trainee, onSuccess }: { trainee: any; onSuccess: ()
               <div className="space-y-1">
                 <Label className="text-xs">Runs / week</Label>
                 <Input type="number" min="0" value={form.runsPerWeek ?? ""} onChange={(e) => set("runsPerWeek", e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Max HR / Heartbeats Factor (bpm)</Label>
+                <Input type="number" min="0" value={form.maxHr ?? ""} onChange={(e) => set("maxHr", e.target.value)} className="h-8 text-sm" placeholder="e.g. 185" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Target HR (bpm)</Label>
@@ -651,6 +657,7 @@ export default function TraineeProfile() {
           </CardHeader>
           <CardContent>
             <InfoRow always label="Runs / week" value={trainee.runsPerWeek} />
+            <InfoRow always label="Max HR / Heartbeats Factor" value={trainee.maxHr != null ? `${trainee.maxHr} bpm` : null} />
             <InfoRow always label="Target HR" value={trainee.targetHr != null ? `${trainee.targetHr} bpm` : null} />
             <InfoRow always label="HR Zone 4" value={trainee.hrZone4 != null ? `${trainee.hrZone4} bpm` : null} />
             <InfoRow always label="HR Zone 5a" value={trainee.hrZone5a != null ? `${trainee.hrZone5a} bpm` : null} />

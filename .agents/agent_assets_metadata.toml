@@ -112,13 +112,13 @@ title = "weekplans.ts (API route) — rename after download"
 id = "Q2Vym79G8aNAjcO44nqZo"
 uri = "file://trainee-profile.txt"
 type = "text"
-title = "trainee-profile.tsx — rename after download"
+title = "artifacts/trainer-web/src/pages/trainee-profile.tsx"
 
 [[outputs]]
 id = "DTK2q7sW9biKBjbXlMKpE"
 uri = "file://trainees-schema.txt"
 type = "text"
-title = "trainees.ts (DB schema) — rename after download"
+title = "lib/db/src/schema/trainees.ts"
 
 [[outputs]]
 id = "M4FELBekmapOqsRafdPry"
@@ -149,3 +149,15 @@ id = "muxkf9ixU-czSAAS2V5aR"
 uri = "file://trainees.txt"
 type = "text"
 title = "trainees.tsx — rename after download"
+
+[[outputs]]
+id = "sNQ8PSvQ7YMEGBF25rZSA"
+uri = "file://api-zod.txt"
+type = "text"
+title = "lib/api-zod/src/generated/api.ts"
+
+[[outputs]]
+id = "nT295VgQJs0bu9Q-krx4I"
+uri = "file://api-schemas.txt"
+type = "text"
+title = "lib/api-client-react/src/generated/api.schemas.ts"

@@ -12,6 +12,7 @@ export const traineesTable = pgTable("trainees", {
   city: text("city"),
   birthdate: date("birthdate"),
   runsPerWeek: integer("runs_per_week"),
+  maxHr: integer("max_hr"),
   hrZone4: integer("hr_zone4"),
   hrZone5a: integer("hr_zone5a"),
   hrZone5c: integer("hr_zone5c"),
