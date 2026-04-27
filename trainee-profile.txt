@@ -266,7 +266,7 @@ function PlanCard({
         <CollapsibleContent>
           <div className="border-t px-4 py-3 space-y-3 bg-muted/20">
             {plan.notes && (
-              <p className="text-xs text-muted-foreground italic">{plan.notes}</p>
+              <p className="text-xs text-muted-foreground italic"><span className="font-semibold not-italic">Notes:</span> {plan.notes}</p>
             )}
             {runs.length === 0 ? (
               <p className="text-xs text-muted-foreground py-1">No runs in this plan yet.</p>
