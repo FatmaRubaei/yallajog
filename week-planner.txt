@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useParams } from "wouter";
 import {
   useListTrainees,
@@ -234,16 +234,19 @@ function SegmentForm({
   onRemove: () => void;
   showRemove: boolean;
 }) {
-  function handleLibrarySelect(v: string) {
-    if (v === "__none__") {
-      onBulkUpdate(idx, { librarySegmentId: "", resolvedText: "", durationMinutes: "", distanceKm: "", paceMin: "", paceSec: "", intensityTarget: "none" });
-      return;
-    }
+  const prevLibSegIdRef = useRef<string>(seg.librarySegmentId ?? "");
+  const onBulkUpdateRef = useRef(onBulkUpdate);
+  onBulkUpdateRef.current = onBulkUpdate;
+
+  useEffect(() => {
+    const v = seg.librarySegmentId ?? "";
+    const prev = prevLibSegIdRef.current;
+    prevLibSegIdRef.current = v;
+    if (!v || v === prev) return;
     const ls = librarySegments.find((x: any) => String(x.id) === v);
-    if (!ls) { onUpdate(idx, "librarySegmentId", v); return; }
+    if (!ls) return;
     const pace = parsePace(ls.defaultPace);
-    onBulkUpdate(idx, {
-      librarySegmentId: v,
+    onBulkUpdateRef.current(idx, {
       resolvedText: ls.name || "",
       segmentType: "",
       measurement: ls.defaultDistanceKm != null ? "distance" : "duration",
@@ -253,7 +256,7 @@ function SegmentForm({
       paceMin: pace.min,
       paceSec: pace.sec,
     });
-  }
+  }, [seg.librarySegmentId, librarySegments, idx]);
 
   const hasLibrarySelection = seg.mode === "library" && !!seg.librarySegmentId;
 
@@ -283,7 +286,13 @@ function SegmentForm({
         <div className="space-y-3">
           <div className="space-y-1">
             <Label className="text-xs">Select Segment</Label>
-            <Select value={seg.librarySegmentId || "__none__"} onValueChange={handleLibrarySelect}>
+            <Select value={seg.librarySegmentId || "__none__"} onValueChange={(v) => {
+              if (v === "__none__") {
+                onBulkUpdate(idx, { librarySegmentId: "", resolvedText: "", durationMinutes: "", distanceKm: "", paceMin: "", paceSec: "", intensityTarget: "none" });
+              } else {
+                onUpdate(idx, "librarySegmentId", v);
+              }
+            }}>
               <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Choose from library..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">Choose from library...</SelectItem>
