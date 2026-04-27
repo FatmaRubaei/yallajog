@@ -131,3 +131,9 @@ id = "lj4ymy0KGZcUqVNysAN1U"
 uri = "file://dashboard-api.txt"
 type = "text"
 title = "dashboard.ts (API route) — rename after download"
+
+[[outputs]]
+id = "PU4rwtd4GK87W7hUIOTmD"
+uri = "file://migrate-production.txt"
+type = "text"
+title = "migrate-production.sql — run this on production DB"

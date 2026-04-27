@@ -1,0 +1,12 @@
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS birthdate date;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS heart_condition text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS medical_conditions text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS medications text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS allergies text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS health_notes text;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS plan_finish_date date;
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS monthly_fee numeric(10,2);
+ALTER TABLE trainees ADD COLUMN IF NOT EXISTS preferred_payment text;

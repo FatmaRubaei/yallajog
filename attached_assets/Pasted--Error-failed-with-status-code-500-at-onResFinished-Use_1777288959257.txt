@@ -1,0 +1,154 @@
+    Error: failed with status code 500
+              at onResFinished (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)
+              at ServerResponse.onResponseComplete (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)
+              at ServerResponse.emit (node:events:530:35)
+              at onFinish (node:_http_outgoing:1027:10)
+              at callback (node:internal/streams/writable:766:21)
+              at afterWrite (node:internal/streams/writable:710:5)
+              at afterWriteTick (node:internal/streams/writable:696:10)
+              at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+    }
+[13:22:10.549] INFO (36151): request errored
+    req: {
+      "id": 12,
+      "method": "GET",
+      "url": "/api/dashboard/trainees-needing-attention"
+    }
+    res: {
+      "statusCode": 500
+    }
+    responseTime: 10
+    err: {
+      "type": "Error",
+      "message": "failed with status code 500",
+      "stack":
+          Error: failed with status code 500
+              at onResFinished (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)
+              at ServerResponse.onResponseComplete (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)
+              at ServerResponse.emit (node:events:530:35)
+              at onFinish (node:_http_outgoing:1027:10)
+              at callback (node:internal/streams/writable:766:21)
+              at afterWrite (node:internal/streams/writable:710:5)
+              at afterWriteTick (node:internal/streams/writable:696:10)
+              at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+    }
+Error: Failed query: select "id", "trainer_id", "name", "phone", "email", "city", "birthdate", "runs_per_week", "hr_zone4", "hr_zone5a", "hr_zone5c", "target_hr", "target_speed_from", "target_speed_to", "test_date", "lactate_threshold_hr", "preferred_payment", "plan_type", "plan_finish_date", "monthly_fee", "heart_condition", "medical_conditions", "medications", "allergies", "health_notes", "created_at" from "trainees" where "trainees"."trainer_id" = $1
+params: 1
+    at NodePgPreparedQuery.queryWithCache (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/artifacts/api-server/src/routes/dashboard.ts:19:20)
+Error: Failed query: select "id", "trainer_id", "name", "phone", "email", "city", "birthdate", "runs_per_week", "hr_zone4", "hr_zone5a", "hr_zone5c", "target_hr", "target_speed_from", "target_speed_to", "test_date", "lactate_threshold_hr", "preferred_payment", "plan_type", "plan_finish_date", "monthly_fee", "heart_condition", "medical_conditions", "medications", "allergies", "health_notes", "created_at" from "trainees" where "trainees"."trainer_id" = $1
+params: 1
+    at NodePgPreparedQuery.queryWithCache (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/artifacts/api-server/src/routes/dashboard.ts:66:20)
+[13:22:11.566] INFO (36151): request errored
+    req: {
+      "id": 13,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    res: {
+      "statusCode": 500
+    }
+    responseTime: 11
+    err: {
+      "type": "Error",
+      "message": "failed with status code 500",
+      "stack":
+          Error: failed with status code 500
+              at onResFinished (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)
+              at ServerResponse.onResponseComplete (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)
+              at ServerResponse.emit (node:events:530:35)
+              at onFinish (node:_http_outgoing:1027:10)
+              at callback (node:internal/streams/writable:766:21)
+              at afterWrite (node:internal/streams/writable:710:5)
+              at afterWriteTick (node:internal/streams/writable:696:10)
+              at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+    }
+[13:22:11.568] INFO (36151): request errored
+    req: {
+      "id": 14,
+      "method": "GET",
+      "url": "/api/dashboard/trainees-needing-attention"
+    }
+    res: {
+      "statusCode": 500
+    }
+    responseTime: 12
+    err: {
+      "type": "Error",
+      "message": "failed with status code 500",
+      "stack":
+          Error: failed with status code 500
+              at onResFinished (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)
+              at ServerResponse.onResponseComplete (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)
+              at ServerResponse.emit (node:events:530:35)
+              at onFinish (node:_http_outgoing:1027:10)
+              at callback (node:internal/streams/writable:766:21)
+              at afterWrite (node:internal/streams/writable:710:5)
+              at afterWriteTick (node:internal/streams/writable:696:10)
+              at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+    }
+Error: Failed query: select "id", "trainer_id", "name", "phone", "email", "city", "birthdate", "runs_per_week", "hr_zone4", "hr_zone5a", "hr_zone5c", "target_hr", "target_speed_from", "target_speed_to", "test_date", "lactate_threshold_hr", "preferred_payment", "plan_type", "plan_finish_date", "monthly_fee", "heart_condition", "medical_conditions", "medications", "allergies", "health_notes", "created_at" from "trainees" where "trainees"."trainer_id" = $1
+params: 1
+    at NodePgPreparedQuery.queryWithCache (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/artifacts/api-server/src/routes/dashboard.ts:19:20)
+Error: Failed query: select "id", "trainer_id", "name", "phone", "email", "city", "birthdate", "runs_per_week", "hr_zone4", "hr_zone5a", "hr_zone5c", "target_hr", "target_speed_from", "target_speed_to", "test_date", "lactate_threshold_hr", "preferred_payment", "plan_type", "plan_finish_date", "monthly_fee", "heart_condition", "medical_conditions", "medications", "allergies", "health_notes", "created_at" from "trainees" where "trainees"."trainer_id" = $1
+params: 1
+    at NodePgPreparedQuery.queryWithCache (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:154:19)
+    at async <anonymous> (/Users/fatmaalrubaei/Public/yallajog/yallajog/artifacts/api-server/src/routes/dashboard.ts:66:20)
+[13:22:13.597] INFO (36151): request errored
+    req: {
+      "id": 15,
+      "method": "GET",
+      "url": "/api/dashboard/summary"
+    }
+    res: {
+      "statusCode": 500
+    }
+    responseTime: 16
+    err: {
+      "type": "Error",
+      "message": "failed with status code 500",
+      "stack":
+          Error: failed with status code 500
+              at onResFinished (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)
+              at ServerResponse.onResponseComplete (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)
+              at ServerResponse.emit (node:events:530:35)
+              at onFinish (node:_http_outgoing:1027:10)
+              at callback (node:internal/streams/writable:766:21)
+              at afterWrite (node:internal/streams/writable:710:5)
+              at afterWriteTick (node:internal/streams/writable:696:10)
+              at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+    }
+[13:22:13.598] INFO (36151): request errored
+    req: {
+      "id": 16,
+      "method": "GET",
+      "url": "/api/dashboard/trainees-needing-attention"
+    }
+    res: {
+      "statusCode": 500
+    }
+    responseTime: 16
+    err: {
+      "type": "Error",
+      "message": "failed with status code 500",
+      "stack":
+          Error: failed with status code 500
+              at onResFinished (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)
+              at ServerResponse.onResponseComplete (/Users/fatmaalrubaei/Public/yallajog/yallajog/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)
+              at ServerResponse.emit (node:events:530:35)
+              at onFinish (node:_http_outgoing:1027:10)
+              at callback (node:internal/streams/writable:766:21)
+              at afterWrite (node:internal/streams/writable:710:5)
+              at afterWriteTick (node:internal/streams/writable:696:10)
+              at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+    }
