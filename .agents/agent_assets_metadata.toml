@@ -89,3 +89,9 @@ id = "YpUxOPBHE7J6vi_9_SQ5_"
 uri = "file://yallajog-changes.tar.gz"
 type = "unspecified"
 title = "Changed Files (5 files)"
+
+[[outputs]]
+id = "McZI_rlOMaMm0GkpVrbQH"
+uri = "file://week-planner-update.tar.gz"
+type = "unspecified"
+title = "week-planner.tsx (updated)"

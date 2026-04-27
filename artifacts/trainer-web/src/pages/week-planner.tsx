@@ -102,10 +102,12 @@ function SegmentRow({
   seg,
   weekPlanId,
   runId,
+  onEdit,
 }: {
   seg: any;
   weekPlanId: number;
   runId: number;
+  onEdit: () => void;
 }) {
   const [completed, setCompleted] = useState<boolean>(seg.completed ?? false);
   const [busy, setBusy] = useState(false);
@@ -140,7 +142,17 @@ function SegmentRow({
           ? <CheckCircle2 className="h-5 w-5 text-green-500" />
           : <Circle className="h-5 w-5 text-muted-foreground hover:text-primary" />}
       </button>
-      <SegmentDetails seg={seg} completed={completed} />
+      <div className="flex-1 min-w-0">
+        <SegmentDetails seg={seg} completed={completed} />
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Edit segment"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -680,6 +692,108 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
   );
 }
 
+function RunCard({
+  run,
+  weekPlanId,
+  librarySegments,
+  onSuccess,
+}: {
+  run: any;
+  weekPlanId: number;
+  librarySegments: any[];
+  onSuccess: () => void;
+}) {
+  const { toast } = useToast();
+  const mutation = useUpdateRun();
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editSeg, setEditSeg] = useState<EditableSegment | null>(null);
+
+  function startEdit(seg: any, idx: number) {
+    setEditingIdx(idx);
+    setEditSeg(segmentToEditable(seg));
+  }
+
+  function cancelEdit() {
+    setEditingIdx(null);
+    setEditSeg(null);
+  }
+
+  async function saveEdit() {
+    if (editSeg === null || editingIdx === null) return;
+    const allSegs = (run.segments ?? []).map((s: any, i: number) =>
+      i === editingIdx
+        ? editableToSegment(editSeg, i)
+        : {
+            segmentId: s.segmentId ?? undefined,
+            resolvedText: s.resolvedText,
+            segmentType: s.segmentType ?? null,
+            durationMinutes: s.durationMinutes ?? null,
+            distanceKm: s.distanceKm ?? null,
+            pace: s.pace ?? null,
+            order: i + 1,
+          }
+    );
+    try {
+      await mutation.mutateAsync({
+        id: weekPlanId,
+        runId: run.id,
+        data: { name: run.name || undefined, runType: run.runType, order: run.order, segments: allSegs },
+      });
+      toast({ title: "Segment updated" });
+      cancelEdit();
+      onSuccess();
+    } catch {
+      toast({ title: "Failed to update segment", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="rounded-lg border bg-muted/30 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-muted-foreground w-6">R{run.order}</span>
+          <span className="font-semibold text-sm">{run.name ?? run.runType}</span>
+          <Badge variant="outline" className="text-xs">{run.runType}</Badge>
+        </div>
+        <EditRunDialog run={run} weekPlanId={weekPlanId} onSuccess={onSuccess} />
+      </div>
+      {(run.segments ?? []).length > 0 && (
+        <div className="divide-y">
+          {(run.segments ?? []).map((seg: any, si: number) => (
+            <div key={seg.id ?? si}>
+              {editingIdx === si ? (
+                <div className="px-4 py-3 space-y-3 bg-background">
+                  <SegmentForm
+                    seg={editSeg!}
+                    idx={0}
+                    librarySegments={librarySegments}
+                    onUpdate={(_, field, value) => setEditSeg((s) => s ? { ...s, [field]: value } : s)}
+                    onRemove={() => {}}
+                    showRemove={false}
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveEdit} disabled={mutation.isPending}>
+                      {mutation.isPending ? "Saving..." : "Save"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={cancelEdit}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <SegmentRow
+                  seg={seg}
+                  weekPlanId={weekPlanId}
+                  runId={run.id}
+                  onEdit={() => startEdit(seg, si)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TraineeWeekPlanner() {
   const { t } = useTranslation();
   const { traineeId: traineeIdStr } = useParams<{ traineeId: string }>();
@@ -689,6 +803,7 @@ export function TraineeWeekPlanner() {
   const { data: trainee } = useListTrainees({}, { query: { select: (d) => d.find((tr) => tr.id === traineeId) } });
   const { data: currentPlan, refetch } = useGetTraineeCurrentWeekPlan(traineeId);
   const { data: allPlans } = useListWeekPlans({ traineeId });
+  const { data: librarySegments = [] } = useListSegments({});
 
   const sortedPlans = [...(allPlans ?? [])].sort((a, b) => b.weekStart.localeCompare(a.weekStart));
 
@@ -726,28 +841,13 @@ export function TraineeWeekPlanner() {
               ) : (
                 <div className="space-y-3">
                   {currentPlan.runs?.map((run) => (
-                    <div key={run.id} className="rounded-lg border bg-muted/30 overflow-hidden">
-                      <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-muted-foreground w-6">R{run.order}</span>
-                          <span className="font-semibold text-sm">{run.name ?? run.runType}</span>
-                          <Badge variant="outline" className="text-xs">{run.runType}</Badge>
-                        </div>
-                        <EditRunDialog run={run} weekPlanId={currentPlan.id} onSuccess={refetch} />
-                      </div>
-                      {(run.segments ?? []).length > 0 && (
-                        <div className="divide-y">
-                          {(run.segments ?? []).map((seg, si) => (
-                            <SegmentRow
-                              key={seg.id ?? si}
-                              seg={seg}
-                              weekPlanId={currentPlan.id}
-                              runId={run.id}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <RunCard
+                      key={run.id}
+                      run={run}
+                      weekPlanId={currentPlan.id}
+                      librarySegments={librarySegments}
+                      onSuccess={refetch}
+                    />
                   ))}
                 </div>
               )}
