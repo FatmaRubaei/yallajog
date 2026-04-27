@@ -65,7 +65,10 @@ router.post("/login", async (req, res) => {
   (req.session as any).trainerEmail = trainer.email;
 
   req.session.save((err) => {
-    if (err) return res.status(500).json({ error: "Session save failed" });
+    if (err) {
+      console.error("Session save error:", err);
+      return res.status(500).json({ error: "Session save failed", detail: String(err) });
+    }
     res.json({
       id: trainer.id,
       name: trainer.name,
