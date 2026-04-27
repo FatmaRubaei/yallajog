@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { traineesTable, transactionsTable, weekPlansTable, runsTable, eventsTable, announcementsTable } from "@workspace/db/schema";
-import { eq, sql, gt, gte } from "drizzle-orm";
+import { eq, sql, gt, gte, inArray } from "drizzle-orm";
 
 const router = Router();
 
@@ -88,9 +88,11 @@ router.get("/trainees-needing-attention", async (req, res) => {
 
   let traineeIdsWithAnyPlan = new Set<number>();
   if (trainees.length > 0) {
-    const allPlans = await db.select({ traineeId: weekPlansTable.traineeId }).from(weekPlansTable).where(
-      sql`${weekPlansTable.traineeId} IN (${sql.raw(trainees.map(t => t.id).join(","))})`
-    );
+    const traineeIds = trainees.map(t => t.id);
+    const allPlans = await db
+      .select({ traineeId: weekPlansTable.traineeId })
+      .from(weekPlansTable)
+      .where(inArray(weekPlansTable.traineeId, traineeIds));
     traineeIdsWithAnyPlan = new Set(allPlans.map(p => p.traineeId));
   }
 
