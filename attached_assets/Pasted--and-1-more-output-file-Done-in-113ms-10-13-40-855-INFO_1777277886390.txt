@@ -1,0 +1,654 @@
+...and 1 more output file...
+
+⚡ Done in 113ms
+[10:13:40.855] INFO (83408): Server listening
+    port: 8080
+[10:13:42.873] INFO (83408): request completed
+    req: {
+      "id": 1,
+      "method": "POST",
+      "url": "/api/auth/login"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 262
+[10:13:42.905] INFO (83408): request completed
+    req: {
+      "id": 2,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 5
+[10:13:42.911] INFO (83408): request completed
+    req: {
+      "id": 3,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 10
+[10:13:51.997] INFO (83408): request completed
+    req: {
+      "id": 4,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 17
+[10:13:53.137] INFO (83408): request completed
+    req: {
+      "id": 5,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 10
+[10:13:53.143] INFO (83408): request completed
+    req: {
+      "id": 6,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 16
+[10:13:53.145] INFO (83408): request completed
+    req: {
+      "id": 7,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 16
+[10:13:54.159] INFO (83408): request completed
+    req: {
+      "id": 8,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 8
+^C/Users/fatmaalrubaei/Public/yallajog/yallajog/artifacts/api-server:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 dev: `NODE_ENV=development node ./build.mjs && node --enable-source-maps --env-file=.env ./dist/index.mjs`
+Command failed with signal "SIGINT"
+
+fatmaalrubaei@Mac yallajog % pnpm --filter @workspace/api-server run build sudo fuser -k 8080/tcp && pm2 start /var/www/yallajog.com/yallajog/yallajog/ecosystem.config.cjs
+
+> @workspace/api-server@0.0.0 build /Users/fatmaalrubaei/Public/yallajog/yallajog/artifacts/api-server
+> node ./build.mjs
+
+
+  dist/index.mjs                   3.1mb ⚠️
+  dist/pino-worker.mjs           153.4kb
+  dist/pino-file.mjs             142.1kb
+  dist/pino-pretty.mjs           114.6kb
+  dist/thread-stream-worker.mjs    7.3kb
+  dist/index.mjs.map               5.6mb
+  dist/pino-worker.mjs.map       256.9kb
+  dist/pino-file.mjs.map         229.1kb
+  dist/pino-pretty.mjs.map       203.9kb
+  ...and 1 more output file...
+
+⚡ Done in 132ms
+Password:
+Unknown option: k
+fuser: [-cfu] file ...
+        -c      file is treated as mount point
+        -f      the report is only for the named files
+        -u      print username of pid in parenthesis
+fatmaalrubaei@Mac yallajog % cd /Users/fatmaalrubaei/Public/yallajog/yallajog
+PORT=8080 DATABASE_URL=postgresql://localhost:5432/yallajog SESSION_SECRET=localsecret pnpm --filter @workspace/api-server run dev
+
+> @workspace/api-server@0.0.0 dev /Users/fatmaalrubaei/Public/yallajog/yallajog/artifacts/api-server
+> NODE_ENV=development node ./build.mjs && node --enable-source-maps --env-file=.env ./dist/index.mjs
+
+
+  dist/index.mjs                       3.1mb ⚠️
+  dist/pino-worker.mjs               153.4kb
+  dist/pino-file.mjs                 142.1kb
+  dist/pino-pretty.mjs               114.6kb
+  dist/thread-stream-worker.mjs        7.3kb
+  dist/index.mjs.map                   5.6mb
+  dist/pino-worker.mjs.map           256.9kb
+  dist/pino-file.mjs.map             229.1kb
+  dist/pino-pretty.mjs.map           203.9kb
+  dist/thread-stream-worker.mjs.map   12.0kb
+
+⚡ Done in 132ms
+[10:15:13.797] INFO (85880): Server listening
+    port: 8080
+[10:15:37.681] INFO (85880): request aborted
+    req: {
+      "id": 2,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": null
+    }
+    responseTime: 12
+[10:15:37.681] INFO (85880): request aborted
+    req: {
+      "id": 3,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": null
+    }
+    responseTime: 12
+[10:15:37.681] INFO (85880): request aborted
+    req: {
+      "id": 1,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": null
+    }
+    responseTime: 20
+[10:15:38.174] INFO (85880): request completed
+    req: {
+      "id": 4,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 3
+[10:15:38.198] INFO (85880): request completed
+    req: {
+      "id": 6,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 4
+[10:15:38.199] INFO (85880): request completed
+    req: {
+      "id": 5,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 5
+[10:15:38.200] INFO (85880): request completed
+    req: {
+      "id": 7,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 6
+[10:15:38.836] INFO (85880): request completed
+    req: {
+      "id": 8,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 1
+[10:15:38.857] INFO (85880): request completed
+    req: {
+      "id": 9,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 6
+[10:15:38.860] INFO (85880): request completed
+    req: {
+      "id": 11,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 6
+[10:15:38.860] INFO (85880): request completed
+    req: {
+      "id": 10,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 8
+[10:15:39.778] INFO (85880): request completed
+    req: {
+      "id": 12,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 2
+[10:15:39.795] INFO (85880): request completed
+    req: {
+      "id": 13,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 5
+[10:15:39.798] INFO (85880): request completed
+    req: {
+      "id": 15,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 6
+[10:15:39.798] INFO (85880): request completed
+    req: {
+      "id": 14,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 7
+[10:15:40.576] INFO (85880): request completed
+    req: {
+      "id": 16,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 4
+[10:15:40.576] INFO (85880): request completed
+    req: {
+      "id": 17,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 3
+[10:16:47.443] INFO (85880): request aborted
+    req: {
+      "id": 19,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 18
+[10:16:47.444] INFO (85880): request aborted
+    req: {
+      "id": 18,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 20
+[10:16:47.913] INFO (85880): request completed
+    req: {
+      "id": 20,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 1
+[10:16:47.929] INFO (85880): request completed
+    req: {
+      "id": 21,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 2
+[10:16:47.929] INFO (85880): request completed
+    req: {
+      "id": 22,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 1
+[10:16:52.827] INFO (85880): request completed
+    req: {
+      "id": 23,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 1
+[10:16:52.842] INFO (85880): request completed
+    req: {
+      "id": 24,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 2
+[10:16:52.842] INFO (85880): request completed
+    req: {
+      "id": 25,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 2
+[10:16:54.581] INFO (85880): request completed
+    req: {
+      "id": 26,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 2
+[10:16:54.600] INFO (85880): request completed
+    req: {
+      "id": 27,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 5
+[10:16:54.601] INFO (85880): request completed
+    req: {
+      "id": 28,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 5
+[10:17:07.147] INFO (85880): request completed
+    req: {
+      "id": 29,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 15
+[10:17:07.147] INFO (85880): request completed
+    req: {
+      "id": 30,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 15
+[10:17:10.126] INFO (85880): request completed
+    req: {
+      "id": 31,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 3
+[10:17:10.139] INFO (85880): request completed
+    req: {
+      "id": 32,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 2
+[10:17:10.139] INFO (85880): request completed
+    req: {
+      "id": 33,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 1
+[10:17:20.341] INFO (85880): request completed
+    req: {
+      "id": 34,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 30
+[10:17:21.244] INFO (85880): request completed
+    req: {
+      "id": 37,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 8
+[10:17:21.246] INFO (85880): request completed
+    req: {
+      "id": 35,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 12
+[10:17:21.249] INFO (85880): request completed
+    req: {
+      "id": 36,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 15
+[10:17:22.267] INFO (85880): request completed
+    req: {
+      "id": 38,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 9
+[10:17:32.628] INFO (85880): request aborted
+    req: {
+      "id": 40,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": null
+    }
+    responseTime: 16
+[10:17:32.628] INFO (85880): request aborted
+    req: {
+      "id": 41,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": null
+    }
+    responseTime: 16
+[10:17:32.628] INFO (85880): request aborted
+    req: {
+      "id": 39,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": null
+    }
+    responseTime: 16
+[10:17:33.118] INFO (85880): request completed
+    req: {
+      "id": 42,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 1
+[10:17:33.142] INFO (85880): request completed
+    req: {
+      "id": 43,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 10
+[10:17:33.145] INFO (85880): request completed
+    req: {
+      "id": 45,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 12
+[10:17:33.145] INFO (85880): request completed
+    req: {
+      "id": 44,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 200
+    }
+    responseTime: 13
+[10:17:33.834] INFO (85880): request completed
+    req: {
+      "id": 46,
+      "method": "GET",
+      "url": "/api/auth/me"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 2
+[10:17:33.855] INFO (85880): request completed
+    req: {
+      "id": 47,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 6
+[10:17:33.858] INFO (85880): request completed
+    req: {
+      "id": 49,
+      "method": "GET",
+      "url": "/api/week-plans"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 7
+[10:17:33.858] INFO (85880): request completed
+    req: {
+      "id": 48,
+      "method": "GET",
+      "url": "/api/trainees"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 8
+[10:17:34.875] INFO (85880): request completed
+    req: {
+      "id": 50,
+      "method": "GET",
+      "url": "/api/trainees/1/current-week-plan"
+    }
+    res: {
+      "statusCode": 404
+    }
+    responseTime: 5
+[10:17:35.097] INFO (85880): request completed
+    req: {
+      "id": 51,
+      "method": "GET",
+      "url": "/api/segments"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 4
+[10:17:35.098] INFO (85880): request completed
+    req: {
+      "id": 52,
+      "method": "GET",
+      "url": "/api/segment-types"
+    }
+    res: {
+      "statusCode": 304
+    }
+    responseTime: 3
