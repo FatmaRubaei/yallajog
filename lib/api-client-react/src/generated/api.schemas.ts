@@ -71,6 +71,8 @@ export const CreateTraineeInputPlanType = {
 
 export interface CreateTraineeInput {
   name: string;
+  phone?: string;
+  email?: string;
   city?: string;
   birthdate?: string;
   runsPerWeek?: number;

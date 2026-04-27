@@ -830,6 +830,10 @@ components:
           type: integer
         name:
           type: string
+        phone:
+          type: string
+        email:
+          type: string
         city:
           type: string
         birthdate:
@@ -894,6 +898,10 @@ components:
       type: object
       properties:
         name:
+          type: string
+        phone:
+          type: string
+        email:
           type: string
         city:
           type: string

@@ -10,6 +10,8 @@ import type { CreateTraineeInputPreferredPayment } from "./createTraineeInputPre
 
 export interface CreateTraineeInput {
   name: string;
+  phone?: string;
+  email?: string;
   city?: string;
   birthdate?: Date;
   runsPerWeek?: number;

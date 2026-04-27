@@ -7,6 +7,8 @@ export const traineesTable = pgTable("trainees", {
   id: serial("id").primaryKey(),
   trainerId: integer("trainer_id").references(() => trainersTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
   city: text("city"),
   birthdate: date("birthdate"),
   runsPerWeek: integer("runs_per_week"),

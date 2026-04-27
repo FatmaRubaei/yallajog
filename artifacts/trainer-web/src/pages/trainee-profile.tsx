@@ -413,12 +413,15 @@ function AddTransactionDialog({ traineeId, onSuccess }: { traineeId: number; onS
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
-  if (!value && value !== 0) return null;
+function InfoRow({ label, value, always }: { label: string; value?: string | number | null; always?: boolean }) {
+  const hasValue = value != null && value !== "";
+  if (!hasValue && !always) return null;
   return (
     <div className="flex items-start justify-between py-2.5 border-b last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-right max-w-[60%]">{String(value)}</span>
+      <span className={`text-sm text-right max-w-[65%] ${hasValue ? "font-medium" : "text-muted-foreground/40 italic"}`}>
+        {hasValue ? String(value) : "—"}
+      </span>
     </div>
   );
 }
@@ -627,62 +630,56 @@ export default function TraineeProfile() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Contact */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Contact</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {trainee.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{trainee.phone}</span>
-              </div>
-            )}
-            {trainee.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{trainee.email}</span>
-              </div>
-            )}
-            {trainee.birthdate && <InfoRow label="Birthdate" value={trainee.birthdate} />}
+          <CardContent>
+            <InfoRow always label="Phone" value={trainee.phone} />
+            <InfoRow always label="Email" value={trainee.email} />
+            <InfoRow always label="City" value={trainee.city} />
+            <InfoRow always label="Birthdate" value={trainee.birthdate} />
+            <InfoRow always label="Plan Type" value={trainee.planType === "paid" ? "Paid" : "Free"} />
           </CardContent>
         </Card>
 
+        {/* Running Metrics */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Running Metrics</CardTitle>
           </CardHeader>
           <CardContent>
-            <InfoRow label="Runs / week" value={trainee.runsPerWeek} />
-            <InfoRow label="Target HR" value={trainee.targetHr ? `${trainee.targetHr} bpm` : null} />
-            <InfoRow label="HR Zone 4" value={trainee.hrZone4 ? `${trainee.hrZone4} bpm` : null} />
-            <InfoRow label="HR Zone 5a" value={trainee.hrZone5a ? `${trainee.hrZone5a} bpm` : null} />
-            <InfoRow label="HR Zone 5c" value={trainee.hrZone5c ? `${trainee.hrZone5c} bpm` : null} />
-            <InfoRow label="Lactate Threshold" value={trainee.lactateThresholdHr ? `${trainee.lactateThresholdHr} bpm` : null} />
-            <InfoRow label="Target Speed" value={
-              trainee.targetSpeedFrom && trainee.targetSpeedTo
-                ? `${trainee.targetSpeedFrom} – ${trainee.targetSpeedTo} min/km`
+            <InfoRow always label="Runs / week" value={trainee.runsPerWeek} />
+            <InfoRow always label="Target HR" value={trainee.targetHr != null ? `${trainee.targetHr} bpm` : null} />
+            <InfoRow always label="HR Zone 4" value={trainee.hrZone4 != null ? `${trainee.hrZone4} bpm` : null} />
+            <InfoRow always label="HR Zone 5a" value={trainee.hrZone5a != null ? `${trainee.hrZone5a} bpm` : null} />
+            <InfoRow always label="HR Zone 5c" value={trainee.hrZone5c != null ? `${trainee.hrZone5c} bpm` : null} />
+            <InfoRow always label="Lactate Threshold" value={trainee.lactateThresholdHr != null ? `${trainee.lactateThresholdHr} bpm` : null} />
+            <InfoRow always label="Target Speed" value={
+              trainee.targetSpeedFrom || trainee.targetSpeedTo
+                ? `${trainee.targetSpeedFrom ?? "?"} – ${trainee.targetSpeedTo ?? "?"} min/km`
                 : null
             } />
-            <InfoRow label="Test Date" value={trainee.testDate} />
+            <InfoRow always label="Test Date" value={trainee.testDate} />
           </CardContent>
         </Card>
 
-        {(trainee.heartCondition || trainee.medicalConditions || trainee.medications || trainee.allergies || trainee.healthNotes) && (
-          <Card className="border-amber-200 dark:border-amber-800">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Health</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InfoRow label="Heart Condition" value={trainee.heartCondition} />
-              <InfoRow label="Medical Conditions" value={trainee.medicalConditions} />
-              <InfoRow label="Medications" value={trainee.medications} />
-              <InfoRow label="Allergies" value={trainee.allergies} />
-              <InfoRow label="Health Notes" value={trainee.healthNotes} />
-            </CardContent>
-          </Card>
-        )}
+        {/* Health */}
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Health</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InfoRow always label="Heart Condition" value={trainee.heartCondition} />
+            <InfoRow always label="Medical Conditions" value={trainee.medicalConditions} />
+            <InfoRow always label="Medications" value={trainee.medications} />
+            <InfoRow always label="Allergies" value={trainee.allergies} />
+            <InfoRow always label="Health Notes" value={trainee.healthNotes} />
+          </CardContent>
+        </Card>
 
+        {/* Billing */}
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Billing</CardTitle>
@@ -699,10 +696,11 @@ export default function TraineeProfile() {
                 </div>
               </div>
             )}
+            <InfoRow always label="Monthly Fee" value={trainee.monthlyFee != null ? `$${Number(trainee.monthlyFee).toFixed(2)}` : null} />
+            <InfoRow always label="Plan Finish Date" value={trainee.planFinishDate} />
+            <InfoRow always label="Preferred Payment" value={trainee.preferredPayment?.replace("_", " ")} />
             <InfoRow label="Total Charged" value={balance ? `$${balance.totalCharged.toFixed(2)}` : null} />
             <InfoRow label="Total Paid" value={balance ? `$${balance.totalPaid.toFixed(2)}` : null} />
-            <InfoRow label="Monthly Fee" value={balance?.monthlyFee ? `$${balance.monthlyFee.toFixed(2)}` : null} />
-            <InfoRow label="Preferred Payment" value={trainee.preferredPayment?.replace("_", " ")} />
           </CardContent>
         </Card>
       </div>
