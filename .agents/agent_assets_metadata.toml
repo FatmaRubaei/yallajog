@@ -83,3 +83,9 @@ id = "mAFYc6Myl6-Bp3PkCfA9D"
 uri = "file://downloads/segments-page.txt"
 type = "text"
 title = "artifacts/trainer-web/src/pages/segments.tsx"
+
+[[outputs]]
+id = "YpUxOPBHE7J6vi_9_SQ5_"
+uri = "file://yallajog-changes.tar.gz"
+type = "unspecified"
+title = "Changed Files (5 files)"
