@@ -137,3 +137,9 @@ id = "PU4rwtd4GK87W7hUIOTmD"
 uri = "file://migrate-production.txt"
 type = "text"
 title = "migrate-production.sql — run this on production DB"
+
+[[outputs]]
+id = "w1zLp2NvHyBKjYm4WBv6r"
+uri = "file://index-server.txt"
+type = "text"
+title = "index.ts (server entry) — rename after download"
