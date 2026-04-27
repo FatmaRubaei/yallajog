@@ -247,7 +247,7 @@ function PlanCard({
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               )}
               <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="font-medium text-sm">Week of {plan.weekStart}</span>
+              <span className="font-bold text-base">Week of {plan.weekStart}</span>
               {isCurrentWeek && <Badge className="text-xs h-5">Current</Badge>}
               <div className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{runs.length} run{runs.length !== 1 ? "s" : ""}</span>
