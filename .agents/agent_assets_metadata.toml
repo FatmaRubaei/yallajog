@@ -65,3 +65,9 @@ id = "-NGeedl-SonnyiAxlgqet"
 uri = "file://downloads/week-planner.txt"
 type = "text"
 title = "artifacts/trainer-web/src/pages/week-planner.tsx"
+
+[[outputs]]
+id = "VDjw7FjzFkbHUg7K-Tv9R"
+uri = "file://downloads/segments.txt"
+type = "text"
+title = "artifacts/trainer-web/src/pages/segments.tsx"
