@@ -33,6 +33,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
@@ -577,39 +585,115 @@ function EditRunDialog({
   );
 }
 
-function TraineeCard({ trainee }: { trainee: any }) {
+function GlobalCreatePlanDialog({ trainees, onSuccess }: { trainees: any[]; onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [selectedTraineeId, setSelectedTraineeId] = useState<string>("");
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((day + 6) % 7));
+    return monday.toISOString().slice(0, 10);
+  });
+  const [notes, setNotes] = useState("");
+  const mutation = useCreateWeekPlan();
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedTraineeId) return;
+    try {
+      await mutation.mutateAsync({
+        data: {
+          traineeId: Number(selectedTraineeId),
+          weekStart,
+          notes: notes || undefined,
+          runs: [],
+        },
+      });
+      toast({ title: "Plan created" });
+      setOpen(false);
+      setNotes("");
+      setSelectedTraineeId("");
+      onSuccess();
+    } catch {
+      toast({ title: "Failed to create plan", variant: "destructive" });
+    }
+  }
+
   return (
-    <Link href={`/week-planner/${trainee.id}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer">
-        <CardContent className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-            {trainee.name?.charAt(0)}
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 me-2" /> Create Plan
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Create Training Plan</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-1">
+          <div className="space-y-1">
+            <Label>Trainee *</Label>
+            <Select value={selectedTraineeId} onValueChange={setSelectedTraineeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a trainee..." />
+              </SelectTrigger>
+              <SelectContent>
+                {trainees.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>
+                    {t.name}{t.city ? ` — ${t.city}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{trainee.name}</p>
-            <p className="text-xs text-muted-foreground">{trainee.city ?? "No city"} · {trainee.runsPerWeek ?? 0} runs/wk</p>
+          <div className="space-y-1">
+            <Label>Week Start *</Label>
+            <Input
+              type="date"
+              required
+              value={weekStart}
+              onChange={(e) => setWeekStart(e.target.value)}
+            />
           </div>
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-        </CardContent>
-      </Card>
-    </Link>
+          <div className="space-y-1">
+            <Label>Notes</Label>
+            <Input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional notes..."
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={!selectedTraineeId || mutation.isPending}>
+              {mutation.isPending ? "Creating..." : "Create Plan"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export function WeekPlannerList() {
   const { t } = useTranslation();
-  const { data: trainees, isLoading } = useListTrainees({});
+  const { data: trainees, isLoading, refetch } = useListTrainees({});
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("weekPlanner.title")}</h1>
-        <p className="text-muted-foreground mt-1">{t("weekPlanner.subtitle")}</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t("weekPlanner.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("weekPlanner.subtitle")}</p>
+        </div>
+        <GlobalCreatePlanDialog trainees={trainees ?? []} onSuccess={refetch} />
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 bg-muted rounded-xl animate-pulse" />)}
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-12 bg-muted rounded-lg animate-pulse" />)}
         </div>
       ) : (trainees ?? []).length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-2 text-muted-foreground">
@@ -620,10 +704,46 @@ export function WeekPlannerList() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(trainees ?? []).map((trainee) => (
-            <TraineeCard key={trainee.id} trainee={trainee} />
-          ))}
+        <div className="rounded-lg border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Trainee</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead>Runs / Week</TableHead>
+                <TableHead>Plan Type</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(trainees ?? []).map((trainee) => (
+                <TableRow key={trainee.id} className="hover:bg-muted/50">
+                  <TableCell>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                        {trainee.name?.charAt(0)}
+                      </div>
+                      <span className="font-medium">{trainee.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{trainee.city || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{trainee.runsPerWeek ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant={trainee.planType === "paid" ? "default" : "secondary"} className="text-xs">
+                      {trainee.planType === "paid" ? "Paid" : "Free"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-end">
+                    <Link href={`/week-planner/${trainee.id}`}>
+                      <Button variant="ghost" size="sm">
+                        <CalendarDays className="h-3.5 w-3.5 me-1.5" /> View Plans
+                      </Button>
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
