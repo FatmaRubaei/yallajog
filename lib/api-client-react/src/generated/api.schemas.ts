@@ -86,6 +86,11 @@ export interface CreateTraineeInput {
   planType: CreateTraineeInputPlanType;
   planFinishDate?: string;
   monthlyFee?: number;
+  heartCondition?: string;
+  medicalConditions?: string;
+  medications?: string;
+  allergies?: string;
+  healthNotes?: string;
 }
 
 export type ContractPreferredPayment =

@@ -113,3 +113,9 @@ id = "Q2Vym79G8aNAjcO44nqZo"
 uri = "file://trainee-profile.txt"
 type = "text"
 title = "trainee-profile.tsx — rename after download"
+
+[[outputs]]
+id = "DTK2q7sW9biKBjbXlMKpE"
+uri = "file://trainees-schema.txt"
+type = "text"
+title = "trainees.ts (DB schema) — rename after download"

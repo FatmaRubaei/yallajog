@@ -83,6 +83,11 @@ function EditTraineeDialog({ trainee, onSuccess }: { trainee: any; onSuccess: ()
         monthlyFee: trainee.monthlyFee != null ? String(trainee.monthlyFee) : "",
         planFinishDate: trainee.planFinishDate ? String(trainee.planFinishDate).slice(0, 10) : "",
         preferredPayment: trainee.preferredPayment ?? "",
+        heartCondition: trainee.heartCondition ?? "",
+        medicalConditions: trainee.medicalConditions ?? "",
+        medications: trainee.medications ?? "",
+        allergies: trainee.allergies ?? "",
+        healthNotes: trainee.healthNotes ?? "",
       });
     }
     setOpen(val);
@@ -116,6 +121,11 @@ function EditTraineeDialog({ trainee, onSuccess }: { trainee: any; onSuccess: ()
           monthlyFee: form.monthlyFee ? Number(form.monthlyFee) : undefined,
           planFinishDate: form.planFinishDate ? (form.planFinishDate as unknown as Date) : undefined,
           preferredPayment: (form.preferredPayment as "cash" | "credit_card") || undefined,
+          heartCondition: form.heartCondition || undefined,
+          medicalConditions: form.medicalConditions || undefined,
+          medications: form.medications || undefined,
+          allergies: form.allergies || undefined,
+          healthNotes: form.healthNotes || undefined,
         },
       });
       toast({ title: "Profile updated" });
@@ -237,6 +247,61 @@ function EditTraineeDialog({ trainee, onSuccess }: { trainee: any; onSuccess: ()
                     <SelectItem value="credit_card">Credit Card</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-3">Health</p>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Heart Condition</Label>
+                <Textarea
+                  value={form.heartCondition ?? ""}
+                  onChange={(e) => set("heartCondition", e.target.value)}
+                  placeholder="Any known heart conditions or cardiac history..."
+                  className="text-sm resize-none"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Medical Conditions / Diseases</Label>
+                <Textarea
+                  value={form.medicalConditions ?? ""}
+                  onChange={(e) => set("medicalConditions", e.target.value)}
+                  placeholder="Diabetes, asthma, hypertension, etc..."
+                  className="text-sm resize-none"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Medications</Label>
+                <Textarea
+                  value={form.medications ?? ""}
+                  onChange={(e) => set("medications", e.target.value)}
+                  placeholder="Current medications and dosages..."
+                  className="text-sm resize-none"
+                  rows={2}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Allergies</Label>
+                <Input
+                  value={form.allergies ?? ""}
+                  onChange={(e) => set("allergies", e.target.value)}
+                  placeholder="Food, medication, environmental allergies..."
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Additional Health Notes</Label>
+                <Textarea
+                  value={form.healthNotes ?? ""}
+                  onChange={(e) => set("healthNotes", e.target.value)}
+                  placeholder="Any other relevant health information..."
+                  className="text-sm resize-none"
+                  rows={2}
+                />
               </div>
             </div>
           </div>
@@ -602,6 +667,21 @@ export default function TraineeProfile() {
             <InfoRow label="Test Date" value={trainee.testDate} />
           </CardContent>
         </Card>
+
+        {(trainee.heartCondition || trainee.medicalConditions || trainee.medications || trainee.allergies || trainee.healthNotes) && (
+          <Card className="border-amber-200 dark:border-amber-800">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Health</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <InfoRow label="Heart Condition" value={trainee.heartCondition} />
+              <InfoRow label="Medical Conditions" value={trainee.medicalConditions} />
+              <InfoRow label="Medications" value={trainee.medications} />
+              <InfoRow label="Allergies" value={trainee.allergies} />
+              <InfoRow label="Health Notes" value={trainee.healthNotes} />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">

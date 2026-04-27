@@ -865,6 +865,16 @@ components:
           format: date
         monthlyFee:
           type: number
+        heartCondition:
+          type: string
+        medicalConditions:
+          type: string
+        medications:
+          type: string
+        allergies:
+          type: string
+        healthNotes:
+          type: string
         balanceDue:
           type: number
         hasActivityThisWeek:
@@ -920,6 +930,16 @@ components:
           format: date
         monthlyFee:
           type: number
+        heartCondition:
+          type: string
+        medicalConditions:
+          type: string
+        medications:
+          type: string
+        allergies:
+          type: string
+        healthNotes:
+          type: string
       required:
         - name
         - planType

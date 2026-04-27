@@ -25,4 +25,9 @@ export interface CreateTraineeInput {
   planType: CreateTraineeInputPlanType;
   planFinishDate?: Date;
   monthlyFee?: number;
+  heartCondition?: string;
+  medicalConditions?: string;
+  medications?: string;
+  allergies?: string;
+  healthNotes?: string;
 }
