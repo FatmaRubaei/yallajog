@@ -262,6 +262,7 @@ export const ListSegmentsResponseItem = zod.object({
   isPersonal: zod.boolean().optional(),
   defaultDurationMinutes: zod.number().nullable().optional(),
   defaultDistanceKm: zod.number().nullable().optional(),
+  defaultPace: zod.string().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 export const ListSegmentsResponse = zod.array(ListSegmentsResponseItem);
@@ -277,6 +278,7 @@ export const CreateSegmentBody = zod.object({
   isPersonal: zod.boolean().optional(),
   defaultDurationMinutes: zod.number().nullable().optional(),
   defaultDistanceKm: zod.number().nullable().optional(),
+  defaultPace: zod.string().nullable().optional(),
 });
 
 /**
@@ -296,6 +298,7 @@ export const GetSegmentResponse = zod.object({
   isPersonal: zod.boolean().optional(),
   defaultDurationMinutes: zod.number().nullable().optional(),
   defaultDistanceKm: zod.number().nullable().optional(),
+  defaultPace: zod.string().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 
@@ -314,6 +317,7 @@ export const UpdateSegmentBody = zod.object({
   isPersonal: zod.boolean().optional(),
   defaultDurationMinutes: zod.number().nullable().optional(),
   defaultDistanceKm: zod.number().nullable().optional(),
+  defaultPace: zod.string().nullable().optional(),
 });
 
 export const UpdateSegmentResponse = zod.object({
@@ -326,6 +330,7 @@ export const UpdateSegmentResponse = zod.object({
   isPersonal: zod.boolean().optional(),
   defaultDurationMinutes: zod.number().nullable().optional(),
   defaultDistanceKm: zod.number().nullable().optional(),
+  defaultPace: zod.string().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 

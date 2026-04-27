@@ -71,3 +71,15 @@ id = "VDjw7FjzFkbHUg7K-Tv9R"
 uri = "file://downloads/segments.txt"
 type = "text"
 title = "artifacts/trainer-web/src/pages/segments.tsx"
+
+[[outputs]]
+id = "kWqpexP9YBdn4xj8FBzex"
+uri = "file://downloads/segments-schema.txt"
+type = "text"
+title = "lib/db/src/schema/segments.ts"
+
+[[outputs]]
+id = "mAFYc6Myl6-Bp3PkCfA9D"
+uri = "file://downloads/segments-page.txt"
+type = "text"
+title = "artifacts/trainer-web/src/pages/segments.tsx"
