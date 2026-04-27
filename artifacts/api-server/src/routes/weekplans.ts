@@ -93,19 +93,41 @@ router.post("/", async (req, res) => {
         );
         await db.insert(runSegmentsTable).values(segRows);
       } else if (inlineSegments && inlineSegments.length > 0) {
-        await db.insert(runSegmentsTable).values(
-          inlineSegments.map((s: any) => ({
-            runId: run.id,
-            segmentId: null,
-            resolvedText: s.resolvedText,
-            segmentType: s.segmentType ?? null,
-            durationMinutes: s.durationMinutes ?? null,
-            distanceKm: s.distanceKm ?? null,
-            pace: s.pace ?? null,
-            completed: false,
-            order: s.order,
-          }))
+        const segRows = await Promise.all(
+          inlineSegments.map(async (s: any, idx: number) => {
+            if (s.segmentId) {
+              const [seg] = await db.select().from(segmentsTable).where(eq(segmentsTable.id, s.segmentId));
+              let typeName: string | null = null;
+              if (seg?.typeId) {
+                const [st] = await db.select().from(segmentTypesTable).where(eq(segmentTypesTable.id, seg.typeId));
+                typeName = st?.name ?? null;
+              }
+              return {
+                runId: run.id,
+                segmentId: s.segmentId,
+                resolvedText: seg?.name ?? "",
+                segmentType: typeName,
+                durationMinutes: seg?.defaultDurationMinutes ?? null,
+                distanceKm: seg?.defaultDistanceKm ?? null,
+                pace: (seg as any)?.defaultPace ?? null,
+                completed: false,
+                order: s.order ?? idx + 1,
+              };
+            }
+            return {
+              runId: run.id,
+              segmentId: null,
+              resolvedText: s.resolvedText ?? "",
+              segmentType: s.segmentType ?? null,
+              durationMinutes: s.durationMinutes ?? null,
+              distanceKm: s.distanceKm ?? null,
+              pace: s.pace ?? null,
+              completed: false,
+              order: s.order ?? idx + 1,
+            };
+          })
         );
+        await db.insert(runSegmentsTable).values(segRows);
       }
     }
   }

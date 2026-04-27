@@ -4,6 +4,7 @@ import {
   useListTrainees,
   useGetTraineeCurrentWeekPlan,
   useListWeekPlans,
+  useListSegments,
   useCreateWeekPlan,
   useUpdateRun,
 } from "@workspace/api-client-react";
@@ -146,6 +147,8 @@ function SegmentRow({
 
 type EditableSegment = {
   id?: number;
+  mode: "library" | "custom";
+  librarySegmentId: string;
   resolvedText: string;
   segmentType: string;
   measurement: "duration" | "distance";
@@ -172,6 +175,8 @@ function segmentToEditable(s: any): EditableSegment {
   const pace = parsePace(s.pace);
   return {
     id: s.id,
+    mode: s.segmentId ? "library" : "custom",
+    librarySegmentId: s.segmentId ? String(s.segmentId) : "",
     resolvedText: s.resolvedText ?? "",
     segmentType: s.segmentType ?? "",
     measurement: s.distanceKm != null ? "distance" : "duration",
@@ -185,6 +190,13 @@ function segmentToEditable(s: any): EditableSegment {
 }
 
 function editableToSegment(s: EditableSegment, i: number) {
+  if (s.mode === "library" && s.librarySegmentId) {
+    return {
+      segmentId: Number(s.librarySegmentId),
+      resolvedText: "",
+      order: i + 1,
+    };
+  }
   return {
     segmentId: undefined as undefined,
     resolvedText: s.resolvedText,
@@ -197,18 +209,20 @@ function editableToSegment(s: EditableSegment, i: number) {
 }
 
 function emptySegment(order: number): EditableSegment {
-  return { resolvedText: "", segmentType: "", measurement: "duration", durationMinutes: "", distanceKm: "", intensityTarget: "none", paceMin: "", paceSec: "", order };
+  return { mode: "custom", librarySegmentId: "", resolvedText: "", segmentType: "", measurement: "duration", durationMinutes: "", distanceKm: "", intensityTarget: "none", paceMin: "", paceSec: "", order };
 }
 
 function SegmentForm({
   seg,
   idx,
+  librarySegments,
   onUpdate,
   onRemove,
   showRemove,
 }: {
   seg: EditableSegment;
   idx: number;
+  librarySegments: any[];
   onUpdate: (idx: number, field: keyof EditableSegment, value: string) => void;
   onRemove: () => void;
   showRemove: boolean;
@@ -224,68 +238,99 @@ function SegmentForm({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-0.5 p-0.5 bg-muted rounded-md">
+        <button type="button" onClick={() => onUpdate(idx, "mode", "library")}
+          className={`py-1 text-xs font-medium rounded transition-all ${seg.mode === "library" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+          From Library
+        </button>
+        <button type="button" onClick={() => onUpdate(idx, "mode", "custom")}
+          className={`py-1 text-xs font-medium rounded transition-all ${seg.mode === "custom" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+          Custom
+        </button>
+      </div>
+
+      {seg.mode === "library" ? (
         <div className="space-y-1">
-          <Label className="text-xs">Segment Type</Label>
-          <Select value={seg.segmentType || "__none__"} onValueChange={(v) => onUpdate(idx, "segmentType", v === "__none__" ? "" : v)}>
-            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No type" /></SelectTrigger>
+          <Label className="text-xs">Select Segment</Label>
+          <Select value={seg.librarySegmentId || "__none__"} onValueChange={(v) => onUpdate(idx, "librarySegmentId", v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Choose from library..." /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__">No type</SelectItem>
-              {SEGMENT_TYPES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+              <SelectItem value="__none__">Choose from library...</SelectItem>
+              {librarySegments.map((ls) => (
+                <SelectItem key={ls.id} value={String(ls.id)}>
+                  {ls.name}
+                  {ls.defaultDurationMinutes ? ` — ${ls.defaultDurationMinutes} min` : ls.defaultDistanceKm ? ` — ${ls.defaultDistanceKm} km` : ""}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Description *</Label>
-          <Input required value={seg.resolvedText} onChange={(e) => onUpdate(idx, "resolvedText", e.target.value)} placeholder="e.g. 800m at tempo" className="h-8 text-sm" />
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">Measurement</Label>
-        <div className="grid grid-cols-2 gap-0.5 p-0.5 bg-muted rounded-md">
-          <button type="button" onClick={() => onUpdate(idx, "measurement", "duration")}
-            className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "duration" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-            Duration
-          </button>
-          <button type="button" onClick={() => onUpdate(idx, "measurement", "distance")}
-            className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "distance" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-            Distance
-          </button>
-        </div>
-        <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
-          {seg.measurement === "duration" ? (
-            <>
-              <Input type="number" min={0} step={0.5} value={seg.durationMinutes} onChange={(e) => onUpdate(idx, "durationMinutes", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
-              <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">min</span>
-            </>
-          ) : (
-            <>
-              <Input type="number" min={0} step={0.001} value={seg.distanceKm} onChange={(e) => onUpdate(idx, "distanceKm", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
-              <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">km</span>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">Intensity Target</Label>
-        <Select value={seg.intensityTarget} onValueChange={(v) => onUpdate(idx, "intensityTarget", v)}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No target</SelectItem>
-            <SelectItem value="pace">Pace (min/km)</SelectItem>
-          </SelectContent>
-        </Select>
-        {seg.intensityTarget === "pace" && (
-          <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
-            <Input type="number" min={0} max={59} value={seg.paceMin} onChange={(e) => onUpdate(idx, "paceMin", e.target.value)} placeholder="4" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
-            <span className="text-xs font-semibold text-muted-foreground px-0.5">:</span>
-            <Input type="number" min={0} max={59} value={seg.paceSec} onChange={(e) => onUpdate(idx, "paceSec", e.target.value)} placeholder="30" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
-            <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center whitespace-nowrap">/km</span>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Segment Type</Label>
+              <Select value={seg.segmentType || "__none__"} onValueChange={(v) => onUpdate(idx, "segmentType", v === "__none__" ? "" : v)}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No type</SelectItem>
+                  {SEGMENT_TYPES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Description *</Label>
+              <Input required={seg.mode === "custom"} value={seg.resolvedText} onChange={(e) => onUpdate(idx, "resolvedText", e.target.value)} placeholder="e.g. 800m at tempo" className="h-8 text-sm" />
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Measurement</Label>
+            <div className="grid grid-cols-2 gap-0.5 p-0.5 bg-muted rounded-md">
+              <button type="button" onClick={() => onUpdate(idx, "measurement", "duration")}
+                className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "duration" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                Duration
+              </button>
+              <button type="button" onClick={() => onUpdate(idx, "measurement", "distance")}
+                className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "distance" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                Distance
+              </button>
+            </div>
+            <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
+              {seg.measurement === "duration" ? (
+                <>
+                  <Input type="number" min={0} step={0.5} value={seg.durationMinutes} onChange={(e) => onUpdate(idx, "durationMinutes", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                  <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">min</span>
+                </>
+              ) : (
+                <>
+                  <Input type="number" min={0} step={0.001} value={seg.distanceKm} onChange={(e) => onUpdate(idx, "distanceKm", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                  <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">km</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Intensity Target</Label>
+            <Select value={seg.intensityTarget} onValueChange={(v) => onUpdate(idx, "intensityTarget", v)}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No target</SelectItem>
+                <SelectItem value="pace">Pace (min/km)</SelectItem>
+              </SelectContent>
+            </Select>
+            {seg.intensityTarget === "pace" && (
+              <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
+                <Input type="number" min={0} max={59} value={seg.paceMin} onChange={(e) => onUpdate(idx, "paceMin", e.target.value)} placeholder="4" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                <span className="text-xs font-semibold text-muted-foreground px-0.5">:</span>
+                <Input type="number" min={0} max={59} value={seg.paceSec} onChange={(e) => onUpdate(idx, "paceSec", e.target.value)} placeholder="30" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center whitespace-nowrap">/km</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -308,6 +353,7 @@ function EditRunDialog({
   );
 
   const mutation = useUpdateRun();
+  const { data: librarySegments = [] } = useListSegments({});
 
   function addSegment() {
     setSegments([...segments, emptySegment(segments.length + 1)]);
@@ -388,6 +434,7 @@ function EditRunDialog({
                   key={idx}
                   seg={seg}
                   idx={idx}
+                  librarySegments={librarySegments}
                   onUpdate={updateSeg}
                   onRemove={() => removeSegment(idx)}
                   showRemove={segments.length > 1}
@@ -487,6 +534,7 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
   ]);
 
   const mutation = useCreateWeekPlan();
+  const { data: librarySegments = [] } = useListSegments({});
 
   function addRun() {
     setRuns([...runs, { name: "", runType: "Recovery", order: runs.length + 1, segments: [emptySegment(1)] }]);
@@ -607,6 +655,7 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
                           key={segIdx}
                           seg={seg}
                           idx={segIdx}
+                          librarySegments={librarySegments}
                           onUpdate={(_, field, value) => updateSegInRun(runIdx, segIdx, field, value)}
                           onRemove={() => removeSegmentFromRun(runIdx, segIdx)}
                           showRemove={run.segments.length > 1}
