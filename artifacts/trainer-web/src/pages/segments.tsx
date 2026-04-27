@@ -111,56 +111,56 @@ function AddSegmentDialog({ types, onSuccess }: { types: any[]; onSuccess: () =>
               rows={3}
             />
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm text-muted-foreground">Measurement</Label>
-              <div className="flex gap-0.5 bg-muted rounded p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, measurement: "duration" })}
-                  className={`text-xs px-2 py-0.5 rounded transition-colors ${form.measurement === "duration" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Duration
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm({ ...form, measurement: "distance" })}
-                  className={`text-xs px-2 py-0.5 rounded transition-colors ${form.measurement === "distance" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  Distance
-                </button>
-              </div>
+          <div className="space-y-2">
+            <Label className="text-sm">Measurement</Label>
+            <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, measurement: "duration" })}
+                className={`py-1.5 text-sm font-medium rounded-md transition-all ${form.measurement === "duration" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Duration
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, measurement: "distance" })}
+                className={`py-1.5 text-sm font-medium rounded-md transition-all ${form.measurement === "distance" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Distance
+              </button>
             </div>
-            {form.measurement === "duration" ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={form.defaultDurationMinutes}
-                  onChange={(e) => setForm({ ...form, defaultDurationMinutes: e.target.value })}
-                  placeholder="e.g. 30"
-                  className="w-28"
-                />
-                <span className="text-sm text-muted-foreground">min</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.001}
-                  value={form.defaultDistanceKm}
-                  onChange={(e) => setForm({ ...form, defaultDistanceKm: e.target.value })}
-                  placeholder="e.g. 5"
-                  className="w-28"
-                />
-                <span className="text-sm text-muted-foreground">km</span>
-              </div>
-            )}
+            <div className="flex items-center rounded-lg border bg-background overflow-hidden">
+              {form.measurement === "duration" ? (
+                <>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={form.defaultDurationMinutes}
+                    onChange={(e) => setForm({ ...form, defaultDurationMinutes: e.target.value })}
+                    placeholder="0"
+                    className="border-0 shadow-none focus-visible:ring-0 text-center text-lg font-medium"
+                  />
+                  <span className="px-3 text-sm text-muted-foreground border-l bg-muted/40 h-full flex items-center py-2">min</span>
+                </>
+              ) : (
+                <>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.001}
+                    value={form.defaultDistanceKm}
+                    onChange={(e) => setForm({ ...form, defaultDistanceKm: e.target.value })}
+                    placeholder="0"
+                    className="border-0 shadow-none focus-visible:ring-0 text-center text-lg font-medium"
+                  />
+                  <span className="px-3 text-sm text-muted-foreground border-l bg-muted/40 h-full flex items-center py-2">km</span>
+                </>
+              )}
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-sm text-muted-foreground">Intensity Target</Label>
+          <div className="space-y-2">
+            <Label className="text-sm">Intensity Target</Label>
             <Select value={form.intensityTarget} onValueChange={(v) => setForm({ ...form, intensityTarget: v as "none" | "pace" })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -169,7 +169,7 @@ function AddSegmentDialog({ types, onSuccess }: { types: any[]; onSuccess: () =>
               </SelectContent>
             </Select>
             {form.intensityTarget === "pace" && (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center rounded-lg border bg-background overflow-hidden">
                 <Input
                   type="number"
                   min={0}
@@ -177,9 +177,9 @@ function AddSegmentDialog({ types, onSuccess }: { types: any[]; onSuccess: () =>
                   value={form.paceMin}
                   onChange={(e) => setForm({ ...form, paceMin: e.target.value })}
                   placeholder="4"
-                  className="w-16 text-sm"
+                  className="border-0 shadow-none focus-visible:ring-0 text-center text-lg font-medium"
                 />
-                <span className="text-sm text-muted-foreground">:</span>
+                <span className="text-muted-foreground font-semibold px-1">:</span>
                 <Input
                   type="number"
                   min={0}
@@ -187,9 +187,9 @@ function AddSegmentDialog({ types, onSuccess }: { types: any[]; onSuccess: () =>
                   value={form.paceSec}
                   onChange={(e) => setForm({ ...form, paceSec: e.target.value })}
                   placeholder="30"
-                  className="w-16 text-sm"
+                  className="border-0 shadow-none focus-visible:ring-0 text-center text-lg font-medium"
                 />
-                <span className="text-sm text-muted-foreground">/ km</span>
+                <span className="px-3 text-sm text-muted-foreground border-l bg-muted/40 h-full flex items-center py-2">/ km</span>
               </div>
             )}
           </div>

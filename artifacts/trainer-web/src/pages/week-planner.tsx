@@ -241,52 +241,50 @@ function SegmentForm({
         </div>
       </div>
 
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">Measurement</Label>
-          <div className="flex gap-0.5 bg-muted rounded p-0.5">
-            <button type="button" onClick={() => onUpdate(idx, "measurement", "duration")}
-              className={`text-xs px-2 py-0.5 rounded transition-colors ${seg.measurement === "duration" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              Duration
-            </button>
-            <button type="button" onClick={() => onUpdate(idx, "measurement", "distance")}
-              className={`text-xs px-2 py-0.5 rounded transition-colors ${seg.measurement === "distance" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              Distance
-            </button>
-          </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs">Measurement</Label>
+        <div className="grid grid-cols-2 gap-0.5 p-0.5 bg-muted rounded-md">
+          <button type="button" onClick={() => onUpdate(idx, "measurement", "duration")}
+            className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "duration" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            Duration
+          </button>
+          <button type="button" onClick={() => onUpdate(idx, "measurement", "distance")}
+            className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "distance" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            Distance
+          </button>
         </div>
-        {seg.measurement === "duration" ? (
-          <div className="flex items-center gap-2">
-            <Input type="number" min={0} step={0.5} value={seg.durationMinutes} onChange={(e) => onUpdate(idx, "durationMinutes", e.target.value)} placeholder="e.g. 8" className="h-8 text-sm w-28" />
-            <span className="text-xs text-muted-foreground">min</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Input type="number" min={0} step={0.001} value={seg.distanceKm} onChange={(e) => onUpdate(idx, "distanceKm", e.target.value)} placeholder="e.g. 0.8" className="h-8 text-sm w-28" />
-            <span className="text-xs text-muted-foreground">km</span>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <Label className="text-xs">Intensity Target</Label>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Select value={seg.intensityTarget} onValueChange={(v) => onUpdate(idx, "intensityTarget", v)}>
-            <SelectTrigger className="h-8 text-sm w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No target</SelectItem>
-              <SelectItem value="pace">Pace (min/km)</SelectItem>
-            </SelectContent>
-          </Select>
-          {seg.intensityTarget === "pace" && (
-            <div className="flex items-center gap-1">
-              <Input type="number" min={0} max={59} value={seg.paceMin} onChange={(e) => onUpdate(idx, "paceMin", e.target.value)} placeholder="M" className="h-8 text-sm w-14" />
-              <span className="text-xs font-medium">:</span>
-              <Input type="number" min={0} max={59} value={seg.paceSec} onChange={(e) => onUpdate(idx, "paceSec", e.target.value)} placeholder="SS" className="h-8 text-sm w-14" />
-              <span className="text-xs text-muted-foreground">/km</span>
-            </div>
+        <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
+          {seg.measurement === "duration" ? (
+            <>
+              <Input type="number" min={0} step={0.5} value={seg.durationMinutes} onChange={(e) => onUpdate(idx, "durationMinutes", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+              <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">min</span>
+            </>
+          ) : (
+            <>
+              <Input type="number" min={0} step={0.001} value={seg.distanceKm} onChange={(e) => onUpdate(idx, "distanceKm", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+              <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">km</span>
+            </>
           )}
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Intensity Target</Label>
+        <Select value={seg.intensityTarget} onValueChange={(v) => onUpdate(idx, "intensityTarget", v)}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No target</SelectItem>
+            <SelectItem value="pace">Pace (min/km)</SelectItem>
+          </SelectContent>
+        </Select>
+        {seg.intensityTarget === "pace" && (
+          <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
+            <Input type="number" min={0} max={59} value={seg.paceMin} onChange={(e) => onUpdate(idx, "paceMin", e.target.value)} placeholder="4" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+            <span className="text-xs font-semibold text-muted-foreground px-0.5">:</span>
+            <Input type="number" min={0} max={59} value={seg.paceSec} onChange={(e) => onUpdate(idx, "paceSec", e.target.value)} placeholder="30" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+            <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">/km</span>
+          </div>
+        )}
       </div>
     </div>
   );
