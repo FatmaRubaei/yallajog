@@ -236,46 +236,50 @@ function PlanCard({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className={`flex items-center rounded-lg border transition-colors ${isCurrentWeek ? "border-primary/40 bg-primary/5" : "bg-card"}`}>
-        <CollapsibleTrigger className="flex-1 text-left hover:bg-muted/40 rounded-l-lg">
-          <div className="flex items-center gap-2 px-4 py-3">
-            {open ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            )}
-            <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="font-medium text-sm">Week of {plan.weekStart}</span>
-            {isCurrentWeek && <Badge className="text-xs h-5">Current</Badge>}
-            <div className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{runs.length} run{runs.length !== 1 ? "s" : ""}</span>
-              <span>·</span>
-              <span>{totalSegments} segment{totalSegments !== 1 ? "s" : ""}</span>
+      <div className={`rounded-lg border overflow-hidden ${isCurrentWeek ? "border-primary/40" : ""}`}>
+        {/* Header row */}
+        <div className={`flex items-center ${isCurrentWeek ? "bg-primary/5" : "bg-card"}`}>
+          <CollapsibleTrigger className="flex-1 text-left hover:bg-muted/40 transition-colors">
+            <div className="flex items-center gap-2 px-4 py-3">
+              {open ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+              <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="font-medium text-sm">Week of {plan.weekStart}</span>
+              {isCurrentWeek && <Badge className="text-xs h-5">Current</Badge>}
+              <div className="ms-auto flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{runs.length} run{runs.length !== 1 ? "s" : ""}</span>
+                <span>·</span>
+                <span>{totalSegments} segment{totalSegments !== 1 ? "s" : ""}</span>
+              </div>
             </div>
+          </CollapsibleTrigger>
+          <div className="pe-2 shrink-0 flex items-center gap-1">
+            <EditPlanDialog plan={plan} traineeId={traineeId} onSuccess={onSuccess} />
+            <DeletePlanButton planId={plan.id} weekStart={plan.weekStart} onSuccess={onSuccess} />
           </div>
-        </CollapsibleTrigger>
-        <div className="pe-2 shrink-0 flex items-center gap-1">
-          <EditPlanDialog plan={plan} traineeId={traineeId} onSuccess={onSuccess} />
-          <DeletePlanButton planId={plan.id} weekStart={plan.weekStart} onSuccess={onSuccess} />
         </div>
-      </div>
 
-      <CollapsibleContent>
-        <div className="mt-2 space-y-2 ps-2">
-          {plan.notes && (
-            <p className="text-xs text-muted-foreground italic px-2">{plan.notes}</p>
-          )}
-          {runs.length === 0 ? (
-            <p className="text-xs text-muted-foreground px-2 py-2">No runs in this plan yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {runs.map((run: any) => (
-                <RunBlock key={run.id} run={run} />
-              ))}
-            </div>
-          )}
-        </div>
-      </CollapsibleContent>
+        {/* Expanded content — inside the same box */}
+        <CollapsibleContent>
+          <div className="border-t px-4 py-3 space-y-3 bg-muted/20">
+            {plan.notes && (
+              <p className="text-xs text-muted-foreground italic">{plan.notes}</p>
+            )}
+            {runs.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-1">No runs in this plan yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {runs.map((run: any) => (
+                  <RunBlock key={run.id} run={run} />
+                ))}
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
     </Collapsible>
   );
 }
