@@ -100,4 +100,10 @@ title = "week-planner.tsx (updated)"
 id = "EJuIm__l-jizcwhuv1-FZ"
 uri = "file://week-planner.txt"
 type = "text"
-title = "week-planner.tsx — rename to .tsx after download"
+title = "week-planner.tsx — rename after download"
+
+[[outputs]]
+id = "bAiKPFuNhaFvI1VrAyYZP"
+uri = "file://weekplans.txt"
+type = "text"
+title = "weekplans.ts (API route) — rename after download"

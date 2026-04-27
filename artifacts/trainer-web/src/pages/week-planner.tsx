@@ -202,16 +202,9 @@ function segmentToEditable(s: any): EditableSegment {
 }
 
 function editableToSegment(s: EditableSegment, i: number) {
-  if (s.mode === "library" && s.librarySegmentId) {
-    return {
-      segmentId: Number(s.librarySegmentId),
-      resolvedText: "",
-      order: i + 1,
-    };
-  }
   return {
-    segmentId: undefined as undefined,
-    resolvedText: s.resolvedText,
+    segmentId: s.mode === "library" && s.librarySegmentId ? Number(s.librarySegmentId) : undefined,
+    resolvedText: s.resolvedText || "",
     segmentType: s.segmentType !== "" ? s.segmentType : null,
     durationMinutes: s.measurement === "duration" && s.durationMinutes !== "" ? Number(s.durationMinutes) : null,
     distanceKm: s.measurement === "distance" && s.distanceKm !== "" ? Number(s.distanceKm) : null,
@@ -229,6 +222,7 @@ function SegmentForm({
   idx,
   librarySegments,
   onUpdate,
+  onBulkUpdate,
   onRemove,
   showRemove,
 }: {
@@ -236,9 +230,33 @@ function SegmentForm({
   idx: number;
   librarySegments: any[];
   onUpdate: (idx: number, field: keyof EditableSegment, value: string) => void;
+  onBulkUpdate: (idx: number, updates: Partial<EditableSegment>) => void;
   onRemove: () => void;
   showRemove: boolean;
 }) {
+  function handleLibrarySelect(v: string) {
+    if (v === "__none__") {
+      onBulkUpdate(idx, { librarySegmentId: "", resolvedText: "", durationMinutes: "", distanceKm: "", paceMin: "", paceSec: "", intensityTarget: "none" });
+      return;
+    }
+    const ls = librarySegments.find((x: any) => String(x.id) === v);
+    if (!ls) { onUpdate(idx, "librarySegmentId", v); return; }
+    const pace = parsePace(ls.defaultPace);
+    onBulkUpdate(idx, {
+      librarySegmentId: v,
+      resolvedText: ls.name || "",
+      segmentType: "",
+      measurement: ls.defaultDistanceKm != null ? "distance" : "duration",
+      durationMinutes: ls.defaultDurationMinutes != null ? String(ls.defaultDurationMinutes) : "",
+      distanceKm: ls.defaultDistanceKm != null ? String(ls.defaultDistanceKm) : "",
+      intensityTarget: ls.defaultPace ? "pace" : "none",
+      paceMin: pace.min,
+      paceSec: pace.sec,
+    });
+  }
+
+  const hasLibrarySelection = seg.mode === "library" && !!seg.librarySegmentId;
+
   return (
     <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
       <div className="flex items-center justify-between">
@@ -262,20 +280,93 @@ function SegmentForm({
       </div>
 
       {seg.mode === "library" ? (
-        <div className="space-y-1">
-          <Label className="text-xs">Select Segment</Label>
-          <Select value={seg.librarySegmentId || "__none__"} onValueChange={(v) => onUpdate(idx, "librarySegmentId", v === "__none__" ? "" : v)}>
-            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Choose from library..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Choose from library...</SelectItem>
-              {librarySegments.map((ls) => (
-                <SelectItem key={ls.id} value={String(ls.id)}>
-                  {ls.name}
-                  {ls.defaultDurationMinutes ? ` — ${ls.defaultDurationMinutes} min` : ls.defaultDistanceKm ? ` — ${ls.defaultDistanceKm} km` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Select Segment</Label>
+            <Select value={seg.librarySegmentId || "__none__"} onValueChange={handleLibrarySelect}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Choose from library..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Choose from library...</SelectItem>
+                {librarySegments.map((ls: any) => (
+                  <SelectItem key={ls.id} value={String(ls.id)}>
+                    {ls.name}
+                    {ls.defaultDurationMinutes ? ` — ${ls.defaultDurationMinutes} min` : ls.defaultDistanceKm ? ` — ${ls.defaultDistanceKm} km` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {hasLibrarySelection && (
+            <>
+              <div className="border-t pt-2 space-y-2">
+                <p className="text-xs text-muted-foreground">Edit details for this plan:</p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Segment Type</Label>
+                    <Select value={seg.segmentType || "__none__"} onValueChange={(v) => onUpdate(idx, "segmentType", v === "__none__" ? "" : v)}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No type</SelectItem>
+                        {SEGMENT_TYPES.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Description</Label>
+                    <Input value={seg.resolvedText} onChange={(e) => onUpdate(idx, "resolvedText", e.target.value)} placeholder="e.g. 800m at tempo" className="h-8 text-sm" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Measurement</Label>
+                  <div className="grid grid-cols-2 gap-0.5 p-0.5 bg-muted rounded-md">
+                    <button type="button" onClick={() => onUpdate(idx, "measurement", "duration")}
+                      className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "duration" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                      Duration
+                    </button>
+                    <button type="button" onClick={() => onUpdate(idx, "measurement", "distance")}
+                      className={`py-1 text-xs font-medium rounded transition-all ${seg.measurement === "distance" ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                      Distance
+                    </button>
+                  </div>
+                  <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
+                    {seg.measurement === "duration" ? (
+                      <>
+                        <Input type="number" min={0} step={0.5} value={seg.durationMinutes} onChange={(e) => onUpdate(idx, "durationMinutes", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                        <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">min</span>
+                      </>
+                    ) : (
+                      <>
+                        <Input type="number" min={0} step={0.001} value={seg.distanceKm} onChange={(e) => onUpdate(idx, "distanceKm", e.target.value)} placeholder="0" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                        <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">km</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Intensity Target</Label>
+                  <Select value={seg.intensityTarget} onValueChange={(v) => onUpdate(idx, "intensityTarget", v)}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No target</SelectItem>
+                      <SelectItem value="pace">Pace (min/km)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {seg.intensityTarget === "pace" && (
+                    <div className="flex items-center rounded-md border bg-background overflow-hidden h-8">
+                      <Input type="number" min={0} max={59} value={seg.paceMin} onChange={(e) => onUpdate(idx, "paceMin", e.target.value)} placeholder="5" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                      <span className="px-1 text-xs text-muted-foreground">:</span>
+                      <Input type="number" min={0} max={59} value={seg.paceSec} onChange={(e) => onUpdate(idx, "paceSec", e.target.value)} placeholder="30" className="border-0 shadow-none focus-visible:ring-0 text-center text-sm font-medium h-8" />
+                      <span className="px-2 text-xs text-muted-foreground border-l bg-muted/40 h-full flex items-center">min/km</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -376,7 +467,11 @@ function EditRunDialog({
   }
 
   function updateSeg(idx: number, field: keyof EditableSegment, value: string) {
-    setSegments(segments.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
+    setSegments((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
+  }
+
+  function updateSegBulk(idx: number, updates: Partial<EditableSegment>) {
+    setSegments((prev) => prev.map((s, i) => (i === idx ? { ...s, ...updates } : s)));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -448,6 +543,7 @@ function EditRunDialog({
                   idx={idx}
                   librarySegments={librarySegments}
                   onUpdate={updateSeg}
+                  onBulkUpdate={updateSegBulk}
                   onRemove={() => removeSegment(idx)}
                   showRemove={segments.length > 1}
                 />
@@ -571,8 +667,14 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
   }
 
   function updateSegInRun(runIdx: number, segIdx: number, field: keyof EditableSegment, value: string) {
-    setRuns(runs.map((r, i) => i === runIdx
+    setRuns((prev) => prev.map((r, i) => i === runIdx
       ? { ...r, segments: r.segments.map((s, si) => si === segIdx ? { ...s, [field]: value } : s) }
+      : r));
+  }
+
+  function updateSegInRunBulk(runIdx: number, segIdx: number, updates: Partial<EditableSegment>) {
+    setRuns((prev) => prev.map((r, i) => i === runIdx
+      ? { ...r, segments: r.segments.map((s, si) => si === segIdx ? { ...s, ...updates } : s) }
       : r));
   }
 
@@ -669,6 +771,7 @@ function CreateWeekPlanDialog({ traineeId, onSuccess }: { traineeId: number; onS
                           idx={segIdx}
                           librarySegments={librarySegments}
                           onUpdate={(_, field, value) => updateSegInRun(runIdx, segIdx, field, value)}
+                          onBulkUpdate={(_, updates) => updateSegInRunBulk(runIdx, segIdx, updates)}
                           onRemove={() => removeSegmentFromRun(runIdx, segIdx)}
                           showRemove={run.segments.length > 1}
                         />
@@ -768,6 +871,7 @@ function RunCard({
                     idx={0}
                     librarySegments={librarySegments}
                     onUpdate={(_, field, value) => setEditSeg((s) => s ? { ...s, [field]: value } : s)}
+                    onBulkUpdate={(_, updates) => setEditSeg((s) => s ? { ...s, ...updates } : s)}
                     onRemove={() => {}}
                     showRemove={false}
                   />
