@@ -57,11 +57,7 @@ router.get("/", async (req, res) => {
   if (params.weekStart) {
     plans = plans.filter(p => p.weekStart === params.weekStart);
   }
-  const results = await Promise.all(plans.map(async (p) => {
-    const [trainee] = await db.select().from(traineesTable).where(eq(traineesTable.id, p.traineeId));
-    const runs = await db.select().from(runsTable).where(eq(runsTable.weekPlanId, p.id));
-    return { ...p, traineeName: trainee?.name ?? "", runsCount: runs.length };
-  }));
+  const results = await Promise.all(plans.map(buildWeekPlanDetail));
   res.json(results);
 });
 

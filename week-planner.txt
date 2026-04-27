@@ -938,73 +938,49 @@ export function TraineeWeekPlanner() {
         <CreateWeekPlanDialog traineeId={traineeId} onSuccess={refetch} />
       </div>
 
-      {currentPlan && (
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Current Week</h2>
-          <Card className="border-primary/30">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Week of {currentPlan.weekStart}</CardTitle>
-                <Badge>{currentPlan.runs?.length ?? 0} runs</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {(currentPlan.runs?.length ?? 0) === 0 ? (
-                <p className="text-sm text-muted-foreground">No runs in this plan.</p>
-              ) : (
-                <div className="space-y-3">
-                  {currentPlan.runs?.map((run) => (
-                    <RunCard
-                      key={run.id}
-                      run={run}
-                      weekPlanId={currentPlan.id}
-                      librarySegments={librarySegments}
-                      onSuccess={refetch}
-                    />
-                  ))}
-                </div>
-              )}
-              {currentPlan.notes && (
-                <p className="text-sm text-muted-foreground mt-3 italic">{currentPlan.notes}</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {sortedPlans.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">{t("weekPlanner.allPlans")}</h2>
-          <div className="space-y-2">
-            {sortedPlans.map((plan) => (
-              <Card key={plan.id} className="hover:shadow-sm transition-shadow">
-                <CardContent className="p-4">
+      {sortedPlans.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No plans yet. Create the first one above.</p>
+      ) : (
+        <div className="space-y-6">
+          {sortedPlans.map((plan) => {
+            const isCurrent = currentPlan?.id === plan.id;
+            return (
+              <Card key={plan.id} className={isCurrent ? "border-primary/40" : ""}>
+                <CardHeader className="pb-2">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div>
-                      <p className="font-medium text-sm">Week of {plan.weekStart}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {plan.runsCount ?? plan.runs?.length ?? 0} runs planned
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base">Week of {plan.weekStart}</CardTitle>
+                      {isCurrent && <Badge className="text-xs">Current</Badge>}
                     </div>
-                    <div className="flex gap-2">
-                      {(plan.runs ?? []).map((r) => (
-                        <Badge key={r.id} variant="outline" className="text-xs">{r.runType}</Badge>
+                    <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
+                  </div>
+                  {plan.notes && (
+                    <p className="text-xs text-muted-foreground italic mt-0.5">{plan.notes}</p>
+                  )}
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {(plan.runs?.length ?? 0) === 0 ? (
+                    <p className="text-sm text-muted-foreground">No runs in this plan.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {plan.runs?.map((run) => (
+                        <RunCard
+                          key={run.id}
+                          run={run}
+                          weekPlanId={plan.id}
+                          librarySegments={librarySegments}
+                          onSuccess={refetch}
+                        />
                       ))}
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
-      {sortedPlans.length === 0 && !currentPlan && (
-        <div className="flex flex-col items-center py-16 gap-2 text-muted-foreground">
-          <CalendarDays className="h-10 w-10" />
-          <p>No plans yet for this trainee</p>
-        </div>
-      )}
     </div>
   );
 }
