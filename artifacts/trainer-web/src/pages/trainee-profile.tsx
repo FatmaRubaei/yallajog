@@ -679,30 +679,6 @@ export default function TraineeProfile() {
           </CardContent>
         </Card>
 
-        {/* Billing */}
-        <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Billing</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {balance && (
-              <div className={`rounded-lg p-3 mb-3 text-sm ${isOverdue ? "bg-destructive/10" : "bg-green-50 dark:bg-green-900/20"}`}>
-                <div className={`text-2xl font-bold ${isOverdue ? "text-destructive" : "text-green-700 dark:text-green-400"}`}>
-                  ${Math.abs(balance.balance).toFixed(2)}
-                </div>
-                <div className={`text-xs mt-0.5 ${isOverdue ? "text-destructive/80" : "text-green-600 dark:text-green-500"}`}>
-                  {isOverdue ? "Outstanding balance" : "All paid up"}
-                </div>
-              </div>
-            )}
-            <InfoRow always label="Monthly Fee" value={trainee.monthlyFee != null ? `$${Number(trainee.monthlyFee).toFixed(2)}` : null} />
-            <InfoRow always label="Plan Finish Date" value={trainee.planFinishDate} />
-            <InfoRow always label="Preferred Payment" value={trainee.preferredPayment?.replace("_", " ")} />
-            <InfoRow label="Total Charged" value={balance ? `$${balance.totalCharged.toFixed(2)}` : null} />
-            <InfoRow label="Total Paid" value={balance ? `$${balance.totalPaid.toFixed(2)}` : null} />
-          </CardContent>
-        </Card>
       </div>
 
       {/* Training Plans */}
@@ -745,33 +721,59 @@ export default function TraineeProfile() {
         </CardContent>
       </Card>
 
-      {/* Transactions */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Transaction History</CardTitle>
-          <AddTransactionDialog traineeId={traineeId} onSuccess={() => { refetchBalance(); refetchTx(); }} />
-        </CardHeader>
-        <CardContent>
-          {sortedTx.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No transactions yet.</p>
-          ) : (
-            <div className="space-y-0 divide-y">
-              {sortedTx.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="text-sm font-medium">{tx.activityMonth}</p>
-                    {tx.notes && <p className="text-xs text-muted-foreground">{tx.notes}</p>}
-                    <p className="text-xs text-muted-foreground">{tx.date}</p>
-                  </div>
-                  <span className={`font-semibold text-sm ${tx.amount > 0 ? "text-green-600" : "text-destructive"}`}>
-                    {tx.amount > 0 ? "+" : ""}${tx.amount.toFixed(2)}
-                  </span>
+      {/* Billing + Transactions side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Billing</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {balance && (
+              <div className={`rounded-lg p-3 mb-3 text-sm ${isOverdue ? "bg-destructive/10" : "bg-green-50 dark:bg-green-900/20"}`}>
+                <div className={`text-2xl font-bold ${isOverdue ? "text-destructive" : "text-green-700 dark:text-green-400"}`}>
+                  ${Math.abs(balance.balance).toFixed(2)}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className={`text-xs mt-0.5 ${isOverdue ? "text-destructive/80" : "text-green-600 dark:text-green-500"}`}>
+                  {isOverdue ? "Outstanding balance" : "All paid up"}
+                </div>
+              </div>
+            )}
+            <InfoRow always label="Monthly Fee" value={trainee.monthlyFee != null ? `$${Number(trainee.monthlyFee).toFixed(2)}` : null} />
+            <InfoRow always label="Plan Finish Date" value={trainee.planFinishDate} />
+            <InfoRow always label="Preferred Payment" value={trainee.preferredPayment?.replace("_", " ")} />
+            <InfoRow label="Total Charged" value={balance ? `$${balance.totalCharged.toFixed(2)}` : null} />
+            <InfoRow label="Total Paid" value={balance ? `$${balance.totalPaid.toFixed(2)}` : null} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base">Transaction History</CardTitle>
+            <AddTransactionDialog traineeId={traineeId} onSuccess={() => { refetchBalance(); refetchTx(); }} />
+          </CardHeader>
+          <CardContent>
+            {sortedTx.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No transactions yet.</p>
+            ) : (
+              <div className="divide-y">
+                {sortedTx.map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <p className="text-sm font-medium">{tx.activityMonth}</p>
+                      {tx.notes && <p className="text-xs text-muted-foreground">{tx.notes}</p>}
+                      <p className="text-xs text-muted-foreground">{tx.date}</p>
+                    </div>
+                    <span className={`font-semibold text-sm ${tx.amount > 0 ? "text-green-600" : "text-destructive"}`}>
+                      {tx.amount > 0 ? "+" : ""}${tx.amount.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
