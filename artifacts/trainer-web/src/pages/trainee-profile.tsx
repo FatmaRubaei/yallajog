@@ -51,8 +51,10 @@ import {
   CheckCircle2,
   Circle,
   Pencil,
+  MessageSquare,
+  Send,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 
@@ -564,6 +566,176 @@ function PlanCard({
   );
 }
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+type WaMessage = {
+  id: number;
+  direction: string;
+  status: string | null;
+  fromPhone: string | null;
+  toPhone: string | null;
+  textBody: string | null;
+  sentAt: string | null;
+  receivedAt: string | null;
+  createdAt: string;
+};
+
+function formatMsgTime(ts: string | null) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function statusTick(status: string | null) {
+  switch (status) {
+    case "delivered": return "delivered";
+    case "read": return "read";
+    case "sent": return "sent";
+    case "accepted": return "sent";
+    default: return status ?? "";
+  }
+}
+
+function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; traineePhone: string | null }) {
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<WaMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [messageText, setMessageText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [canSend, setCanSend] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  async function fetchMessages() {
+    try {
+      const res = await fetch(`${BASE}/api/trainer/whatsapp/messages?traineeId=${traineeId}`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        const sorted = (data.messages ?? []).slice().sort(
+          (a: WaMessage, b: WaMessage) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setMessages(sorted);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchStatus() {
+    const res = await fetch(`${BASE}/api/trainer/whatsapp`, { credentials: "include" });
+    if (res.ok) {
+      const data = await res.json();
+      const s = data?.account?.connectionStatus;
+      setCanSend(s === "connected" || s === "pending_review");
+    }
+  }
+
+  useEffect(() => {
+    fetchStatus();
+    fetchMessages();
+    pollRef.current = setInterval(fetchMessages, 10000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [traineeId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function handleSend() {
+    const text = messageText.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`${BASE}/api/trainer/whatsapp/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ traineeId, text }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessageText("");
+        await fetchMessages();
+      } else {
+        toast({ title: data.error ?? "Failed to send message", variant: "destructive" });
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 flex flex-row items-center gap-2">
+        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-base">WhatsApp Chat</CardTitle>
+        {traineePhone && (
+          <span className="text-xs text-muted-foreground ms-auto">{traineePhone}</span>
+        )}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {!traineePhone && (
+          <p className="text-sm text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+            Add a phone number to this trainee to enable WhatsApp messaging.
+          </p>
+        )}
+        <div className="border rounded-lg bg-muted/20 min-h-[260px] max-h-[360px] overflow-y-auto p-3 flex flex-col gap-2">
+          {loading ? (
+            <p className="text-sm text-muted-foreground text-center mt-10">Loading...</p>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground">
+              <MessageSquare className="h-8 w-8 opacity-20" />
+              <p className="text-sm">No messages yet</p>
+            </div>
+          ) : (
+            messages.map((msg) => {
+              const isOut = msg.direction === "outgoing";
+              return (
+                <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${isOut ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-background border rounded-tl-sm"}`}>
+                    <p className="whitespace-pre-wrap break-words leading-snug">{msg.textBody ?? ""}</p>
+                    <p className={`text-xs mt-1 opacity-60 flex items-center gap-1 ${isOut ? "justify-end" : "justify-start"}`}>
+                      {formatMsgTime(isOut ? msg.sentAt : msg.receivedAt) || formatMsgTime(msg.createdAt)}
+                      {isOut && msg.status && (
+                        <span className="capitalize">{statusTick(msg.status)}</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {canSend && traineePhone ? (
+          <div className="flex gap-2 items-end">
+            <Textarea
+              className="flex-1 min-h-[52px] max-h-[120px] resize-none text-sm"
+              placeholder={`Message ${traineePhone}...`}
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            <Button size="sm" className="h-9 px-3" onClick={handleSend} disabled={sending || !messageText.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : !canSend ? (
+          <p className="text-xs text-muted-foreground">
+            Connect WhatsApp in the Control Panel to send messages.
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function TraineeProfile() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
@@ -727,6 +899,9 @@ export default function TraineeProfile() {
           )}
         </CardContent>
       </Card>
+
+      {/* WhatsApp Chat */}
+      <TraineeWhatsAppChat traineeId={traineeId} traineePhone={trainee.phone ?? null} />
 
       {/* Billing + Transactions side by side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
