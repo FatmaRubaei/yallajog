@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight, Send } from "lucide-react";
+import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight, Send, Download } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -1722,6 +1722,52 @@ function formatPlanAsText(plan: any, traineeName: string): string {
   return lines.join("\n");
 }
 
+function DownloadFitButton({ planId, weekStart }: { planId: number; weekStart: string }) {
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/week-plans/${planId}/export-fit`, { credentials: "include" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as any).error || "Export failed");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `workout-${weekStart}.fit`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : "Failed to export FIT file",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 px-2 text-muted-foreground hover:text-blue-600"
+      disabled={downloading}
+      onClick={handleDownload}
+      title="Download Garmin FIT file"
+    >
+      <Download className="h-3.5 w-3.5" />
+    </Button>
+  );
+}
+
 function sentKey(planId: number) {
   return `weekPlanSent_${planId}`;
 }
@@ -1843,6 +1889,7 @@ export function TraineeWeekPlanner() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
+                      <DownloadFitButton planId={plan.id} weekStart={plan.weekStart} />
                       <SendWeekPlanButton
                         plan={plan}
                         traineeId={traineeId}

@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@garmin/fitsdk": "^21.205.0",
     "@types/archiver": "^7.0.0",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
@@ -21,6 +22,7 @@
     "drizzle-orm": "catalog:",
     "express": "^5",
     "express-session": "^1.19.0",
+    "fit-encoder": "^0.1.5",
     "pino": "^9",
     "pino-http": "^10"
   },

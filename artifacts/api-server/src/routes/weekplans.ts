@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { weekPlansTable, runsTable, runSegmentsTable, traineesTable, segmentsTable, segmentTypesTable } from "@workspace/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
+import { buildFitWorkout, planToFitSteps } from "../lib/fit-workout";
 import {
   ListWeekPlansQueryParams,
   CreateWeekPlanBody,
@@ -206,6 +207,23 @@ router.delete("/:id/runs/:runId", async (req, res) => {
   const runId = Number(req.params.runId);
   await db.delete(runsTable).where(eq(runsTable.id, runId));
   res.status(204).end();
+});
+
+router.get("/:id/export-fit", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid plan id" });
+  const [plan] = await db.select().from(weekPlansTable).where(eq(weekPlansTable.id, id));
+  if (!plan) return res.status(404).json({ error: "Not found" });
+  const detail = await buildWeekPlanDetail(plan);
+  const steps = planToFitSteps(detail);
+  if (steps.length === 0) return res.status(400).json({ error: "This plan has no segments to export" });
+  const workoutName = `Week ${detail.weekStart}`;
+  const fitBuffer = buildFitWorkout(workoutName, steps);
+  const filename = `workout-${detail.weekStart}.fit`;
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.setHeader("Content-Length", fitBuffer.length);
+  return res.send(fitBuffer);
 });
 
 router.patch("/:id/runs/:runId/segments/:segId", async (req, res) => {
