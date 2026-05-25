@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { traineesTable, trainersTable, whatsappMessagesTable } from "@workspace/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import {
   exchangeEmbeddedSignupCode,
   fetchMetaGraphObject,
@@ -296,12 +296,36 @@ router.get("/trainer/whatsapp/messages", async (req, res) => {
   const trainerId = (req as any).trainerId as number;
   const traineeId = normalizeRequiredText(req.query["traineeId"]);
 
-  const whereClause = traineeId
-    ? and(
+  let whereClause;
+
+  if (traineeId) {
+    const [trainee] = await db
+      .select({ phone: traineesTable.phone })
+      .from(traineesTable)
+      .where(and(eq(traineesTable.id, Number(traineeId)), eq(traineesTable.trainerId, trainerId)));
+
+    const traineePhone = trainee?.phone ? normalizePhone(trainee.phone) : null;
+
+    if (traineePhone) {
+      // Match by traineeId OR by phone (with/without + prefix) for unlinked historical messages
+      const phoneVariants = [traineePhone, traineePhone.replace(/^\+/, "")];
+      whereClause = and(
+        eq(whatsappMessagesTable.trainerId, trainerId),
+        or(
+          eq(whatsappMessagesTable.traineeId, Number(traineeId)),
+          inArray(whatsappMessagesTable.fromPhone, phoneVariants),
+          inArray(whatsappMessagesTable.toPhone, phoneVariants),
+        ),
+      );
+    } else {
+      whereClause = and(
         eq(whatsappMessagesTable.trainerId, trainerId),
         eq(whatsappMessagesTable.traineeId, Number(traineeId)),
-      )
-    : eq(whatsappMessagesTable.trainerId, trainerId);
+      );
+    }
+  } else {
+    whereClause = eq(whatsappMessagesTable.trainerId, trainerId);
+  }
 
   const rows = await db
     .select({

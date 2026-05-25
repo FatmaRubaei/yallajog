@@ -708,7 +708,15 @@ function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; t
           <div ref={bottomRef} />
         </div>
 
-        {canSend && traineePhone ? (
+        {!canSend ? (
+          <p className="text-xs text-muted-foreground">
+            Connect WhatsApp in the Control Panel to send messages.
+          </p>
+        ) : !traineePhone ? (
+          <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+            Add a phone number to this trainee's profile to send messages.
+          </p>
+        ) : (
           <div className="flex gap-2 items-end">
             <Textarea
               className="flex-1 min-h-[52px] max-h-[120px] resize-none text-sm"
@@ -726,11 +734,7 @@ function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; t
               <Send className="h-4 w-4" />
             </Button>
           </div>
-        ) : !canSend ? (
-          <p className="text-xs text-muted-foreground">
-            Connect WhatsApp in the Control Panel to send messages.
-          </p>
-        ) : null}
+        )}
       </CardContent>
     </Card>
   );
