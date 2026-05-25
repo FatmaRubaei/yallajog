@@ -1722,6 +1722,10 @@ function formatPlanAsText(plan: any, traineeName: string): string {
   return lines.join("\n");
 }
 
+function sentKey(planId: number) {
+  return `weekPlanSent_${planId}`;
+}
+
 function SendWeekPlanButton({
   plan,
   traineeId,
@@ -1733,6 +1737,13 @@ function SendWeekPlanButton({
 }) {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(() => {
+    try {
+      return localStorage.getItem(sentKey(plan.id)) !== null;
+    } catch {
+      return false;
+    }
+  });
 
   async function handleSend() {
     if (sending) return;
@@ -1749,6 +1760,10 @@ function SendWeekPlanButton({
         const data = await res.json().catch(() => ({}));
         throw new Error((data as any).error || "Failed to send");
       }
+      try {
+        localStorage.setItem(sentKey(plan.id), new Date().toISOString());
+      } catch {}
+      setSent(true);
       toast({ title: "Plan sent via WhatsApp" });
     } catch (err) {
       toast({
@@ -1761,16 +1776,23 @@ function SendWeekPlanButton({
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-7 px-2 text-muted-foreground hover:text-green-600"
-      disabled={sending}
-      onClick={handleSend}
-      title="Send plan via WhatsApp"
-    >
-      <Send className="h-3.5 w-3.5" />
-    </Button>
+    <div className="flex items-center gap-1">
+      {sent && (
+        <span className="text-xs text-green-600 font-medium px-1.5 py-0.5 rounded bg-green-50 border border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 whitespace-nowrap">
+          Sent
+        </span>
+      )}
+      <Button
+        variant="ghost"
+        size="sm"
+        className={`h-7 px-2 ${sent ? "text-green-600 hover:text-green-700" : "text-muted-foreground hover:text-green-600"}`}
+        disabled={sending}
+        onClick={handleSend}
+        title={sent ? "Resend plan via WhatsApp" : "Send plan via WhatsApp"}
+      >
+        <Send className="h-3.5 w-3.5" />
+      </Button>
+    </div>
   );
 }
 
