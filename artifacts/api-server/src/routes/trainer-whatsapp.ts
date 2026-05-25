@@ -357,7 +357,8 @@ router.post("/trainer/whatsapp/messages", async (req, res) => {
   const trainerId = (req as any).trainerId as number;
   const body = (req.body ?? {}) as Record<string, unknown>;
   const messageText = normalizeRequiredText(body["text"]);
-  const traineeIdValue = normalizeRequiredText(body["traineeId"]);
+  const traineeIdRaw = body["traineeId"];
+  const traineeIdValue = traineeIdRaw != null ? String(traineeIdRaw).trim() || null : null;
   const toPhoneNumberValue = normalizeRequiredText(body["toPhoneNumber"]);
 
   if (!messageText) {
