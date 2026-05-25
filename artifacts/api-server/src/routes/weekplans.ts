@@ -3,11 +3,8 @@ import { db } from "@workspace/db";
 import { weekPlansTable, runsTable, runSegmentsTable, traineesTable, segmentsTable, segmentTypesTable } from "@workspace/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { buildFitWorkout, planToFitSteps } from "../lib/fit-workout";
-import {
-  uploadWhatsAppMedia,
-  sendWhatsAppDocumentMessage,
-  normalizePhone,
-} from "../lib/whatsapp";
+import { sendWhatsAppTextMessage, normalizePhone } from "../lib/whatsapp";
+import { saveFitFile } from "../lib/fit-store";
 import {
   ListWeekPlansQueryParams,
   CreateWeekPlanBody,
@@ -272,29 +269,22 @@ router.post("/:id/send-fit", async (req, res) => {
   const fitBuffer = buildFitWorkout(`Week ${detail.weekStart}`, steps);
   const filename = `workout-${detail.weekStart}.fit`;
 
+  // Save to temp store and build a public link (valid 48 h)
+  const token = saveFitFile(fitBuffer, filename);
+  const baseUrl = process.env.PUBLIC_BASE_URL ?? "https://yallajog.com";
+  const downloadUrl = `${baseUrl}/api/fit/${token}`;
+
   try {
-    const uploaded = await uploadWhatsAppMedia({
-      accessToken: trainerRow.whatsappAccessToken,
-      phoneNumberId: trainerRow.whatsappPhoneNumberId,
-      fileBuffer: fitBuffer,
-      mimeType: "application/octet-stream",
-      filename,
-    });
-
-    if (!uploaded.id) return res.status(502).json({ error: "Media upload to WhatsApp failed" });
-
-    await sendWhatsAppDocumentMessage({
+    await sendWhatsAppTextMessage({
       accessToken: trainerRow.whatsappAccessToken,
       phoneNumberId: trainerRow.whatsappPhoneNumberId,
       to: toPhone,
-      mediaId: uploaded.id,
-      filename,
-      caption: `Garmin workout plan — Week of ${detail.weekStart}`,
+      text: `Your Garmin workout plan for the week of ${detail.weekStart} is ready.\n\nDownload and open with Garmin Connect:\n${downloadUrl}\n\n(Link expires in 48 hours)`,
     });
 
-    return res.json({ ok: true, filename });
+    return res.json({ ok: true, filename, downloadUrl });
   } catch (err: any) {
-    return res.status(502).json({ error: err?.message ?? "Failed to send FIT file via WhatsApp" });
+    return res.status(502).json({ error: err?.message ?? "Failed to send link via WhatsApp" });
   }
 });
 
