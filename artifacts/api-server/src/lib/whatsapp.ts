@@ -267,6 +267,70 @@ export async function registerWhatsAppPhoneNumber(phoneNumberId: string, accessT
   return Boolean(data.success);
 }
 
+export async function uploadWhatsAppMedia(options: {
+  accessToken: string;
+  phoneNumberId: string;
+  fileBuffer: Buffer;
+  mimeType: string;
+  filename: string;
+}) {
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append(
+    "file",
+    new Blob([options.fileBuffer], { type: options.mimeType }),
+    options.filename,
+  );
+
+  const response = await fetch(
+    `${META_GRAPH_BASE_URL}/${options.phoneNumberId}/media`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${options.accessToken}` },
+      body: form,
+    },
+  );
+
+  return readMetaGraphResponse<{ id?: string }>(response);
+}
+
+export async function sendWhatsAppDocumentMessage(options: {
+  accessToken: string;
+  phoneNumberId: string;
+  to: string;
+  mediaId: string;
+  filename: string;
+  caption?: string;
+}) {
+  const response = await fetch(
+    `${META_GRAPH_BASE_URL}/${options.phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${options.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: options.to.replace(/^\+/, ""),
+        type: "document",
+        document: {
+          id: options.mediaId,
+          filename: options.filename,
+          ...(options.caption ? { caption: options.caption } : {}),
+        },
+      }),
+    },
+  );
+
+  return readMetaGraphResponse<{
+    messaging_product?: string;
+    contacts?: Array<{ input?: string; wa_id?: string }>;
+    messages?: Array<{ id?: string }>;
+  }>(response);
+}
+
 export async function sendWhatsAppTextMessage(options: {
   accessToken: string;
   phoneNumberId: string;

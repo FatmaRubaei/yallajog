@@ -4,6 +4,11 @@ import { weekPlansTable, runsTable, runSegmentsTable, traineesTable, segmentsTab
 import { eq, and, sql, desc } from "drizzle-orm";
 import { buildFitWorkout, planToFitSteps } from "../lib/fit-workout";
 import {
+  uploadWhatsAppMedia,
+  sendWhatsAppDocumentMessage,
+  normalizePhone,
+} from "../lib/whatsapp";
+import {
   ListWeekPlansQueryParams,
   CreateWeekPlanBody,
   GetWeekPlanParams,
@@ -224,6 +229,73 @@ router.get("/:id/export-fit", async (req, res) => {
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.setHeader("Content-Length", fitBuffer.length);
   return res.send(fitBuffer);
+});
+
+router.post("/:id/send-fit", async (req, res) => {
+  const trainerId = (req as any).trainerId as number;
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid plan id" });
+
+  const [plan] = await db.select().from(weekPlansTable).where(eq(weekPlansTable.id, id));
+  if (!plan) return res.status(404).json({ error: "Plan not found" });
+
+  const detail = await buildWeekPlanDetail(plan);
+  const steps = planToFitSteps(detail);
+  if (steps.length === 0) return res.status(400).json({ error: "This plan has no segments to export" });
+
+  const [trainee] = await db
+    .select()
+    .from(traineesTable)
+    .where(and(eq(traineesTable.id, plan.traineeId), eq(traineesTable.trainerId, trainerId)));
+  if (!trainee) return res.status(404).json({ error: "Trainee not found" });
+
+  const toPhone = normalizePhone(trainee.phone);
+  if (!toPhone) return res.status(400).json({ error: "Trainee has no phone number" });
+
+  const [trainer] = await db
+    .select()
+    .from(traineesTable)
+    .where(eq(traineesTable.trainerId, trainerId))
+    .limit(1);
+
+  // Get trainer WhatsApp credentials
+  const { trainersTable } = await import("@workspace/db/schema");
+  const [trainerRow] = await db.select().from(trainersTable).where(eq(trainersTable.id, trainerId));
+  if (!trainerRow?.whatsappAccessToken || !trainerRow?.whatsappPhoneNumberId) {
+    return res.status(400).json({ error: "Connect WhatsApp with Meta before sending files" });
+  }
+  const status = trainerRow.whatsappConnectionStatus;
+  if (status !== "connected" && status !== "pending_review") {
+    return res.status(400).json({ error: "Connect WhatsApp with Meta before sending files" });
+  }
+
+  const fitBuffer = buildFitWorkout(`Week ${detail.weekStart}`, steps);
+  const filename = `workout-${detail.weekStart}.fit`;
+
+  try {
+    const uploaded = await uploadWhatsAppMedia({
+      accessToken: trainerRow.whatsappAccessToken,
+      phoneNumberId: trainerRow.whatsappPhoneNumberId,
+      fileBuffer: fitBuffer,
+      mimeType: "application/octet-stream",
+      filename,
+    });
+
+    if (!uploaded.id) return res.status(502).json({ error: "Media upload to WhatsApp failed" });
+
+    await sendWhatsAppDocumentMessage({
+      accessToken: trainerRow.whatsappAccessToken,
+      phoneNumberId: trainerRow.whatsappPhoneNumberId,
+      to: toPhone,
+      mediaId: uploaded.id,
+      filename,
+      caption: `Garmin workout plan — Week of ${detail.weekStart}`,
+    });
+
+    return res.json({ ok: true, filename });
+  } catch (err: any) {
+    return res.status(502).json({ error: err?.message ?? "Failed to send FIT file via WhatsApp" });
+  }
 });
 
 router.patch("/:id/runs/:runId/segments/:segId", async (req, res) => {

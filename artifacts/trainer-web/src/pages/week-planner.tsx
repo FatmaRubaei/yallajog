@@ -1768,6 +1768,55 @@ function DownloadFitButton({ planId, weekStart }: { planId: number; weekStart: s
   );
 }
 
+function SendFitWhatsAppButton({ planId, weekStart }: { planId: number; weekStart: string }) {
+  const { toast } = useToast();
+  const [sending, setSending] = useState(false);
+
+  async function handleSend() {
+    if (sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/week-plans/${planId}/send-fit`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as any).error || "Failed to send");
+      }
+      toast({ title: `Garmin FIT file sent via WhatsApp (${weekStart})` });
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : "Failed to send FIT via WhatsApp",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 px-2 text-muted-foreground hover:text-green-600"
+      disabled={sending}
+      onClick={handleSend}
+      title="Send Garmin FIT file via WhatsApp"
+    >
+      {sending ? (
+        <span className="text-xs">...</span>
+      ) : (
+        <span className="flex items-center gap-0.5">
+          <Download className="h-3 w-3" />
+          <Send className="h-3 w-3" />
+        </span>
+      )}
+    </Button>
+  );
+}
+
 function sentKey(planId: number) {
   return `weekPlanSent_${planId}`;
 }
@@ -1890,6 +1939,7 @@ export function TraineeWeekPlanner() {
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
                       <DownloadFitButton planId={plan.id} weekStart={plan.weekStart} />
+                      <SendFitWhatsAppButton planId={plan.id} weekStart={plan.weekStart} />
                       <SendWeekPlanButton
                         plan={plan}
                         traineeId={traineeId}
