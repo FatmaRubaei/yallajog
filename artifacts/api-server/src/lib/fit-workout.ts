@@ -2,10 +2,21 @@
  * Minimal FIT file generator for Garmin workout export.
  * Produces a valid .fit file containing a single workout with steps.
  *
- * FIT spec references used:
+ * FIT spec references:
  *   - Global message numbers: file_id=0, workout=26, workout_step=27
  *   - All values little-endian
- *   - CRC: FIT CRC-16 (x^16 + x^12 + x^5 + 1)
+ *   - CRC: FIT CRC-16 (polynomial 0xb2b4)
+ *
+ * workout_step field numbers (from Garmin FIT Profile):
+ *   254 message_index     uint16
+ *     0 wkt_step_name     string(16)
+ *     1 duration_type     uint8
+ *     2 duration_value    uint32
+ *     3 target_type       uint8
+ *     4 target_value      uint32   (single value; 0xFFFFFFFF when range is used)
+ *     5 custom_target_value_low   uint32
+ *     6 custom_target_value_high  uint32
+ *     7 intensity         uint8
  */
 
 // ── CRC ──────────────────────────────────────────────────────────────────────
@@ -14,14 +25,10 @@ const CRC_TABLE = (() => {
   const table: number[] = [];
   for (let i = 0; i < 16; i++) {
     let crc = i;
-    if (crc & 1) crc = (crc >> 1) ^ 0xb2b4;
-    else crc >>= 1;
-    if (crc & 1) crc = (crc >> 1) ^ 0xb2b4;
-    else crc >>= 1;
-    if (crc & 1) crc = (crc >> 1) ^ 0xb2b4;
-    else crc >>= 1;
-    if (crc & 1) crc = (crc >> 1) ^ 0xb2b4;
-    else crc >>= 1;
+    for (let j = 0; j < 4; j++) {
+      if (crc & 1) crc = (crc >> 1) ^ 0xb2b4;
+      else crc >>= 1;
+    }
     table[i] = crc;
   }
   return table;
@@ -42,7 +49,7 @@ function fitCrc(data: Uint8Array, start = 0, end = data.length): number {
 class Writer {
   private buf: number[] = [];
 
-  u8(v: number) { this.buf.push(v & 0xff); }
+  u8(v: number)  { this.buf.push(v & 0xff); }
   u16le(v: number) { this.u8(v); this.u8(v >> 8); }
   u32le(v: number) { this.u16le(v); this.u16le(v >> 16); }
 
@@ -56,23 +63,23 @@ class Writer {
   length(): number { return this.buf.length; }
 }
 
-// ── FIT message helpers ───────────────────────────────────────────────────────
+// ── FIT base types ────────────────────────────────────────────────────────────
 
-// Field definition: [field_def_num, size, base_type]
-type FieldDef = [number, number, number];
-
-// base types
 const UINT8  = 0x02;
 const UINT16 = 0x84;
 const UINT32 = 0x86;
 const STRING = 0x07;
+const UINT32_INVALID = 0xffffffff;
+
+// ── Field definition ──────────────────────────────────────────────────────────
+
+type FieldDef = [number, number, number]; // [field_def_num, size, base_type]
 
 function definitionMessage(localMsgNum: number, globalMsgNum: number, fields: FieldDef[]): Uint8Array {
   const w = new Writer();
-  // definition record header: normal header | definition bit
-  w.u8(0x40 | (localMsgNum & 0x0f));
-  w.u8(0);         // reserved
-  w.u8(0);         // architecture: little-endian
+  w.u8(0x40 | (localMsgNum & 0x0f)); // definition record header
+  w.u8(0);                            // reserved
+  w.u8(0);                            // architecture: little-endian
   w.u16le(globalMsgNum);
   w.u8(fields.length);
   for (const [fnum, size, btype] of fields) {
@@ -83,83 +90,89 @@ function definitionMessage(localMsgNum: number, globalMsgNum: number, fields: Fi
   return w.bytes();
 }
 
-// ── Message types ─────────────────────────────────────────────────────────────
+// ── file_id (global msg 0) ────────────────────────────────────────────────────
+// Fields: type(0), manufacturer(1), product(2), time_created(4)
 
-// Global msg 0: file_id
-// Fields: type(0,1,uint8), manufacturer(1,2,uint16), product(2,2,uint16),
-//         serial(3,4,uint32), time_created(4,4,uint32), number(5,2,uint16)
 function fileIdDefinition(): Uint8Array {
   return definitionMessage(0, 0, [
-    [0, 1, UINT8],
-    [1, 2, UINT16],
-    [2, 2, UINT16],
-    [4, 4, UINT32],
+    [0, 1, UINT8],   // type
+    [1, 2, UINT16],  // manufacturer
+    [2, 2, UINT16],  // product
+    [4, 4, UINT32],  // time_created
   ]);
 }
 
-// type=5 (workout), manufacturer=255 (development), product=0, time_created=now
 function fileIdData(timestamp: number): Uint8Array {
   const w = new Writer();
-  w.u8(0x00); // data record header local msg 0
-  w.u8(5);    // file type: workout
-  w.u16le(255); // manufacturer: development
-  w.u16le(0);   // product
+  w.u8(0x00);      // data record, local msg 0
+  w.u8(5);         // file type 5 = workout
+  w.u16le(255);    // manufacturer: development (255)
+  w.u16le(0);      // product
   w.u32le(timestamp);
   return w.bytes();
 }
 
-// Global msg 26: workout
-// Fields: sport(4,1,uint8), capabilities(5,4,uint32), num_valid_steps(6,2,uint16),
-//         wkt_name(8,16,string)
+// ── workout (global msg 26) ───────────────────────────────────────────────────
+// Fields: sport(4), capabilities(5), num_valid_steps(6), wkt_name(8)
+
 function workoutDefinition(): Uint8Array {
   return definitionMessage(1, 26, [
-    [4, 1, UINT8],   // sport
-    [5, 4, UINT32],  // capabilities
-    [6, 2, UINT16],  // num_valid_steps
-    [8, 16, STRING], // wkt_name
+    [4, 1, UINT8],    // sport
+    [5, 4, UINT32],   // capabilities
+    [6, 2, UINT16],   // num_valid_steps
+    [8, 16, STRING],  // wkt_name
   ]);
 }
 
 function workoutData(name: string, numSteps: number): Uint8Array {
   const w = new Writer();
-  w.u8(0x01); // data record header local msg 1
-  w.u8(1);    // sport: running
-  w.u32le(0); // capabilities
+  w.u8(0x01);          // data record, local msg 1
+  w.u8(1);             // sport: running
+  w.u32le(0);          // capabilities
   w.u16le(numSteps);
   w.string(name.slice(0, 15), 16);
   return w.bytes();
 }
 
-// Global msg 27: workout_step
-// Fields: wkt_step_name(0,16,string), duration_type(1,1,uint8), duration_value(2,4,uint32),
-//         target_type(3,1,uint8), target_value(4,4,uint32),
-//         intensity(6,1,uint8), message_index(254,2,uint16)
+// ── workout_step (global msg 27) ──────────────────────────────────────────────
+// Fields per FIT profile:
+//   254 message_index            uint16
+//     0 wkt_step_name            string(16)
+//     1 duration_type            uint8
+//     2 duration_value           uint32
+//     3 target_type              uint8
+//     4 target_value             uint32  (0xFFFFFFFF when using custom range)
+//     5 custom_target_value_low  uint32
+//     6 custom_target_value_high uint32
+//     7 intensity                uint8
+
 function workoutStepDefinition(): Uint8Array {
   return definitionMessage(2, 27, [
     [254, 2, UINT16], // message_index
-    [0, 16, STRING],  // wkt_step_name
-    [1, 1, UINT8],    // duration_type
-    [2, 4, UINT32],   // duration_value
-    [3, 1, UINT8],    // target_type
-    [4, 4, UINT32],   // target_value
-    [5, 4, UINT32],   // target_value_low (custom_target_value_low)
-    [6, 1, UINT8],    // intensity
+    [0,  16, STRING], // wkt_step_name
+    [1,   1, UINT8],  // duration_type
+    [2,   4, UINT32], // duration_value
+    [3,   1, UINT8],  // target_type
+    [4,   4, UINT32], // target_value
+    [5,   4, UINT32], // custom_target_value_low
+    [6,   4, UINT32], // custom_target_value_high
+    [7,   1, UINT8],  // intensity
   ]);
 }
 
-// duration_type: 0=time(ms), 1=distance(cm), 2=hr_less_than, 3=hr_greater_than,
-//                4=calories, 5=open, 6=repeat_until_steps_cmplt
-// target_type:  0=speed, 1=heart_rate, 2=open, 3=cadence, 4=power, 5=grade, 6=resistance, 7=power_3s, 8=power_10s, 9=power_30s, 10=power_lap, 11=swim_stroke, 12=speed_lap, 13=heart_rate_lap
-// intensity:    0=active, 1=rest, 2=warmup, 3=cooldown
+// duration_type values
+const DURATION_TIME     = 0; // value in milliseconds
+const DURATION_DISTANCE = 1; // value in centimetres
+const DURATION_OPEN     = 5;
 
-const DURATION_TIME = 0;
-const DURATION_DISTANCE = 1;
-const DURATION_OPEN = 5;
-const TARGET_OPEN = 2;
-const TARGET_SPEED = 0; // speed in mm/s, range stored as low/high
-const INTENSITY_ACTIVE = 0;
-const INTENSITY_REST = 1;
-const INTENSITY_WARMUP = 2;
+// target_type values
+const TARGET_SPEED = 0; // mm/s
+const TARGET_OPEN  = 2;
+
+// intensity values
+const INTENSITY_ACTIVE   = 0;
+const INTENSITY_REST     = 1;
+const INTENSITY_WARMUP   = 2;
 const INTENSITY_COOLDOWN = 3;
 
 export type FitWorkoutStep = {
@@ -173,71 +186,81 @@ export type FitWorkoutStep = {
 function intensityForType(segmentType: string | null | undefined): number {
   if (!segmentType) return INTENSITY_ACTIVE;
   const t = segmentType.toLowerCase();
-  if (t.includes("warm")) return INTENSITY_WARMUP;
-  if (t.includes("cool")) return INTENSITY_COOLDOWN;
+  if (t.includes("warm"))                          return INTENSITY_WARMUP;
+  if (t.includes("cool"))                          return INTENSITY_COOLDOWN;
   if (t.includes("recovery") || t.includes("rest")) return INTENSITY_REST;
   return INTENSITY_ACTIVE;
 }
 
-/** Parse "M:SS" → speed in mm/s (FIT target_value for SPEED is speed in mm/s) */
+/** Parse "M:SS" pace → speed in mm/s */
 function paceToSpeedMmS(pace: string): number {
-  const parts = pace.split(":");
-  const minutes = Number(parts[0] ?? 0);
-  const seconds = Number(parts[1] ?? 0);
-  const totalSeconds = minutes * 60 + seconds;
+  const [mPart, sPart] = pace.split(":");
+  const totalSeconds = Number(mPart ?? 0) * 60 + Number(sPart ?? 0);
   if (totalSeconds <= 0) return 0;
-  // pace is min/km → speed = 1000m / totalSeconds m/s → mm/s
-  return Math.round((1000 / totalSeconds) * 1000);
+  return Math.round((1000 / totalSeconds) * 1000); // 1 km / totalSeconds → m/s → mm/s
 }
 
 function workoutStepData(step: FitWorkoutStep, index: number): Uint8Array {
   const w = new Writer();
-  w.u8(0x02); // data record header local msg 2
+  w.u8(0x02); // data record, local msg 2
 
   // message_index
   w.u16le(index);
 
-  // name (max 15 chars + null)
+  // name (max 15 chars + null terminator)
   w.string(step.name.slice(0, 15), 16);
 
-  // duration
+  // ── duration ──────────────────────────────────────────────────────────────
   let durationType: number;
   let durationValue: number;
   if (step.durationMinutes != null && step.durationMinutes > 0) {
-    durationType = DURATION_TIME;
+    durationType  = DURATION_TIME;
     durationValue = Math.round(step.durationMinutes * 60 * 1000); // ms
   } else if (step.distanceKm != null && step.distanceKm > 0) {
-    durationType = DURATION_DISTANCE;
-    durationValue = Math.round(step.distanceKm * 100000); // cm
+    durationType  = DURATION_DISTANCE;
+    durationValue = Math.round(step.distanceKm * 100000);          // cm
   } else {
-    durationType = DURATION_OPEN;
+    durationType  = DURATION_OPEN;
     durationValue = 0;
   }
   w.u8(durationType);
   w.u32le(durationValue);
 
-  // target
+  // ── target ────────────────────────────────────────────────────────────────
+  // When using a custom speed range:
+  //   target_value (4)             = 0xFFFFFFFF (invalid — range fields are used)
+  //   custom_target_value_low  (5) = low speed (slower) in mm/s
+  //   custom_target_value_high (6) = high speed (faster) in mm/s
+  //
+  // When open target:
+  //   target_value (4)             = 0
+  //   custom_target_value_low  (5) = 0xFFFFFFFF (invalid)
+  //   custom_target_value_high (6) = 0xFFFFFFFF (invalid)
+
   let targetType: number;
   let targetValue: number;
-  let targetValueLow: number;
+  let targetLow: number;
+  let targetHigh: number;
+
   if (step.pace) {
     const speedMmS = paceToSpeedMmS(step.pace);
-    // Garmin speed range: ±10% around target pace
-    const low  = Math.round(speedMmS * 0.95);
-    const high = Math.round(speedMmS * 1.05);
-    targetType = TARGET_SPEED;
-    targetValue = high;     // target_value_high
-    targetValueLow = low;   // target_value_low
+    targetType  = TARGET_SPEED;
+    targetValue = UINT32_INVALID;                    // not used when range is specified
+    targetLow   = Math.round(speedMmS * 0.95);       // ±5% band
+    targetHigh  = Math.round(speedMmS * 1.05);
   } else {
-    targetType = TARGET_OPEN;
+    targetType  = TARGET_OPEN;
     targetValue = 0;
-    targetValueLow = 0;
+    targetLow   = UINT32_INVALID;
+    targetHigh  = UINT32_INVALID;
   }
+
   w.u8(targetType);
   w.u32le(targetValue);
-  w.u32le(targetValueLow);
+  w.u32le(targetLow);
+  w.u32le(targetHigh);
 
-  // intensity
+  // intensity (field 7)
   w.u8(intensityForType(step.segmentType));
 
   return w.bytes();
@@ -247,29 +270,22 @@ function workoutStepData(step: FitWorkoutStep, index: number): Uint8Array {
 
 function fitHeader(dataSize: number): Uint8Array {
   const w = new Writer();
-  w.u8(14);           // header size
+  w.u8(14);           // header length
   w.u8(0x10);         // protocol version 1.0
   w.u16le(2132);      // profile version 21.32
-  w.u32le(dataSize);  // data size (excludes header + header CRC)
-  // data type ".FIT"
-  w.u8(0x2e); w.u8(0x46); w.u8(0x49); w.u8(0x54);
-  // header CRC (over first 12 bytes)
-  const hdr = w.bytes();
-  const crc = fitCrc(hdr);
-  const out = new Writer();
-  out.u8(14); out.u8(0x10); out.u16le(2132); out.u32le(dataSize);
-  out.u8(0x2e); out.u8(0x46); out.u8(0x49); out.u8(0x54);
-  out.u16le(crc);
-  return out.bytes();
+  w.u32le(dataSize);  // data size in bytes (excludes header and file CRC)
+  w.u8(0x2e); w.u8(0x46); w.u8(0x49); w.u8(0x54); // ".FIT"
+  // header CRC covers the first 12 bytes
+  const crc = fitCrc(w.bytes());
+  w.u16le(crc);
+  return w.bytes();
 }
 
-// ── FIT epoch ────────────────────────────────────────────────────────────────
+// ── FIT epoch: seconds since 1989-12-31 00:00:00 UTC ─────────────────────────
 
-// FIT timestamp = seconds since 1989-12-31 00:00:00 UTC
-const FIT_EPOCH = Date.UTC(1989, 11, 31, 0, 0, 0) / 1000;
-
+const FIT_EPOCH_S = Date.UTC(1989, 11, 31, 0, 0, 0) / 1000;
 function fitTimestamp(): number {
-  return Math.floor(Date.now() / 1000) - FIT_EPOCH;
+  return Math.floor(Date.now() / 1000) - FIT_EPOCH_S;
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -279,40 +295,30 @@ export function buildFitWorkout(workoutName: string, steps: FitWorkoutStep[]): B
 
   const parts: Uint8Array[] = [];
 
-  // definitions
+  // definitions first
   parts.push(fileIdDefinition());
-  parts.push(fileIdData(ts));
   parts.push(workoutDefinition());
-  parts.push(workoutData(workoutName, steps.length));
   parts.push(workoutStepDefinition());
 
-  // steps
-  steps.forEach((step, i) => {
-    parts.push(workoutStepData(step, i));
-  });
+  // data records
+  parts.push(fileIdData(ts));
+  parts.push(workoutData(workoutName, steps.length));
+  steps.forEach((step, i) => parts.push(workoutStepData(step, i)));
 
-  // combine data section
+  // assemble data section
   const dataLen = parts.reduce((n, p) => n + p.length, 0);
   const data = new Uint8Array(dataLen);
   let offset = 0;
-  for (const p of parts) {
-    data.set(p, offset);
-    offset += p.length;
-  }
+  for (const p of parts) { data.set(p, offset); offset += p.length; }
 
-  // header
-  const header = fitHeader(dataLen);
+  // file CRC covers the data section only
+  const fileCrc = fitCrc(data);
+  const crcBytes = new Uint8Array([fileCrc & 0xff, (fileCrc >> 8) & 0xff]);
 
-  // final file = header + data + file CRC
-  const crc = fitCrc(data);
-  const crcBytes = new Uint8Array(2);
-  crcBytes[0] = crc & 0xff;
-  crcBytes[1] = (crc >> 8) & 0xff;
-
-  return Buffer.concat([header, data, crcBytes]);
+  return Buffer.concat([fitHeader(dataLen), data, crcBytes]);
 }
 
-/** Convert a week plan (with runs+segments) to a flat list of FIT workout steps. */
+/** Convert a week plan (with runs + segments) to a flat list of FIT workout steps. */
 export function planToFitSteps(plan: {
   weekStart: string;
   runs?: Array<{
@@ -333,9 +339,9 @@ export function planToFitSteps(plan: {
       steps.push({
         name: seg.resolvedText.slice(0, 15),
         durationMinutes: seg.durationMinutes ?? null,
-        distanceKm: seg.distanceKm ?? null,
-        pace: seg.pace ?? null,
-        segmentType: seg.segmentType ?? null,
+        distanceKm:      seg.distanceKm      ?? null,
+        pace:            seg.pace             ?? null,
+        segmentType:     seg.segmentType      ?? null,
       });
     }
   }
