@@ -5,4 +5,4 @@ export * from "./segments";
 export * from "./weekplans";
 export * from "./announcements";
 export * from "./events";
-export * from "./whatsapp";
+export * from "./whatsapp-messages";

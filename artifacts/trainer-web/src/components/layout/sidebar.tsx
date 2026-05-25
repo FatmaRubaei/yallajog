@@ -13,6 +13,7 @@ import {
   Check,
   Settings,
   LogOut,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ function NavContent({ onClick, trainer, onLogout }: NavContentProps) {
     { name: t("nav.segments"), href: "/segments", icon: Dumbbell },
     { name: t("nav.announcements"), href: "/announcements", icon: Megaphone },
     { name: t("nav.events"), href: "/events", icon: Flag },
+    { name: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
     { name: "Control Panel", href: "/control-panel", icon: Settings },
   ];
 

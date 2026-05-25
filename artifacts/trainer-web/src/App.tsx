@@ -14,6 +14,7 @@ import SegmentLibrary from "@/pages/segments";
 import AnnouncementList from "@/pages/announcements";
 import EventList from "@/pages/events";
 import ControlPanel from "@/pages/control-panel";
+import WhatsAppPage from "@/pages/whatsapp";
 import AuthPage from "@/pages/auth";
 import { authMe, authLogout, type TrainerInfo } from "@/hooks/use-auth";
 
@@ -50,6 +51,7 @@ function Router({ trainer, onLogout }: RouterProps) {
         <Route path="/control-panel">
           {() => <ControlPanel trainer={trainer} />}
         </Route>
+        <Route path="/whatsapp" component={WhatsAppPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

@@ -10,7 +10,8 @@ import announcementsRouter from "./announcements";
 import eventsRouter from "./events";
 import dashboardRouter from "./dashboard";
 import downloadRouter from "./download";
-import whatsappRouter, { whatsappWebhookRouter } from "./whatsapp";
+import trainerWhatsAppRouter from "./trainer-whatsapp";
+import whatsAppWebhookRouter from "./whatsapp-webhook";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -18,7 +19,7 @@ const router = Router();
 router.use(healthRouter);
 router.use(downloadRouter);
 router.use("/auth", authRouter);
-router.use("/whatsapp/webhook", whatsappWebhookRouter);
+router.use(whatsAppWebhookRouter);
 
 router.use(requireAuth);
 
@@ -33,6 +34,6 @@ router.use("/week-plans", weekPlansRouter);
 router.use("/announcements", announcementsRouter);
 router.use("/events", eventsRouter);
 router.use("/dashboard", dashboardRouter);
-router.use("/whatsapp", whatsappRouter);
+router.use(trainerWhatsAppRouter);
 
 export default router;
