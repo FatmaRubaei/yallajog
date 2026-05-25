@@ -250,6 +250,23 @@ export async function subscribeEmbeddedSignupApp(wabaId: string, accessToken: st
   return Boolean(data.success);
 }
 
+export async function registerWhatsAppPhoneNumber(phoneNumberId: string, accessToken: string) {
+  const response = await fetch(`${META_GRAPH_BASE_URL}/${phoneNumberId}/register`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      pin: "000000",
+    }),
+  });
+
+  const data = await readMetaGraphResponse<{ success?: boolean }>(response);
+  return Boolean(data.success);
+}
+
 export async function sendWhatsAppTextMessage(options: {
   accessToken: string;
   phoneNumberId: string;

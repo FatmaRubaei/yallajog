@@ -8,6 +8,7 @@ import {
   getMetaAppConfig,
   MetaGraphError,
   normalizePhone,
+  registerWhatsAppPhoneNumber,
   resolveEmbeddedSignupAccountSelection,
   sendWhatsAppTextMessage,
   subscribeEmbeddedSignupApp,
@@ -172,14 +173,30 @@ router.post("/trainer/whatsapp/embedded-signup/complete", async (req, res) => {
     ]);
 
     let webhookSubscribed = false;
+    let phoneRegistered = false;
+    const setupNotes: string[] = [];
+
     try {
       webhookSubscribed = await subscribeEmbeddedSignupApp(resolvedWabaId, accessToken);
-    } catch {
+    } catch (err) {
       webhookSubscribed = false;
+      setupNotes.push(`Webhook subscription failed: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn({ trainerId, wabaId: resolvedWabaId, err }, "WhatsApp WABA webhook subscription failed");
     }
 
+    try {
+      phoneRegistered = await registerWhatsAppPhoneNumber(resolvedPhoneNumberId, accessToken);
+    } catch (err) {
+      phoneRegistered = false;
+      setupNotes.push(`Phone registration failed: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn({ trainerId, phoneNumberId: resolvedPhoneNumberId, err }, "WhatsApp phone number registration failed");
+    }
+
+    const connectionStatus = phoneRegistered ? "connected" : "pending_review";
+    const connectedAt = phoneRegistered ? new Date() : null;
+
     const account = await updateTrainerWhatsAppAccount(trainerId, {
-      whatsappConnectionStatus: "pending_review",
+      whatsappConnectionStatus: connectionStatus,
       whatsappBusinessAccountId: resolvedWabaId,
       whatsappPhoneNumberId: resolvedPhoneNumberId,
       whatsappDisplayPhoneNumber: phoneNumber.display_phone_number?.trim() || null,
@@ -187,7 +204,8 @@ router.post("/trainer/whatsapp/embedded-signup/complete", async (req, res) => {
       whatsappAccessToken: accessToken,
       whatsappAccessTokenUpdatedAt: new Date(),
       whatsappWebhookSubscribed: webhookSubscribed,
-      whatsappConnectedAt: null,
+      whatsappConnectedAt: connectedAt,
+      whatsappNotes: setupNotes.length > 0 ? setupNotes.join("\n") : null,
     });
 
     if (!account) {
@@ -202,6 +220,8 @@ router.post("/trainer/whatsapp/embedded-signup/complete", async (req, res) => {
         displayPhoneNumber: phoneNumber.display_phone_number?.trim() || null,
         businessName: (waba.name?.trim() || phoneNumber.verified_name?.trim() || null),
         webhookSubscribed,
+        phoneRegistered,
+        setupNotes,
       },
     });
   } catch (error) {
