@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight, Send } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -1682,6 +1682,98 @@ export function DeletePlanButton({
   );
 }
 
+function formatPlanAsText(plan: any, traineeName: string): string {
+  const lines: string[] = [];
+  lines.push(`Week Plan - Week of ${plan.weekStart}`);
+  lines.push(`Trainee: ${traineeName}`);
+  if (plan.notes) {
+    lines.push(`Notes: ${plan.notes}`);
+  }
+  const runs: any[] = plan.runs ?? [];
+  if (runs.length === 0) {
+    lines.push("\nNo runs scheduled.");
+  } else {
+    for (const run of runs) {
+      lines.push("");
+      const runHeader = run.name
+        ? `Run ${run.order} - ${run.runType} (${run.name})`
+        : `Run ${run.order} - ${run.runType}`;
+      lines.push(runHeader);
+      const segments: any[] = run.segments ?? [];
+      if (segments.length === 0) {
+        lines.push("  No segments.");
+      } else {
+        for (const seg of segments) {
+          const parts: string[] = [];
+          if (seg.segmentType) parts.push(`[${seg.segmentType}]`);
+          parts.push(seg.resolvedText);
+          const metrics: string[] = [];
+          if (seg.durationMinutes != null) metrics.push(`${seg.durationMinutes} min`);
+          if (seg.distanceKm != null) {
+            metrics.push(seg.distanceKm < 1 ? `${Math.round(seg.distanceKm * 1000)}m` : `${seg.distanceKm}km`);
+          }
+          if (seg.pace) metrics.push(`${seg.pace} /km`);
+          if (metrics.length > 0) parts.push(`(${metrics.join(" | ")})`);
+          lines.push(`  - ${parts.join(" ")}`);
+        }
+      }
+    }
+  }
+  return lines.join("\n");
+}
+
+function SendWeekPlanButton({
+  plan,
+  traineeId,
+  traineeName,
+}: {
+  plan: any;
+  traineeId: number;
+  traineeName: string;
+}) {
+  const { toast } = useToast();
+  const [sending, setSending] = useState(false);
+
+  async function handleSend() {
+    if (sending) return;
+    setSending(true);
+    const text = formatPlanAsText(plan, traineeName);
+    try {
+      const res = await fetch("/api/trainer/whatsapp/messages", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ traineeId, text }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as any).error || "Failed to send");
+      }
+      toast({ title: "Plan sent via WhatsApp" });
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : "Failed to send plan",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 px-2 text-muted-foreground hover:text-green-600"
+      disabled={sending}
+      onClick={handleSend}
+      title="Send plan via WhatsApp"
+    >
+      <Send className="h-3.5 w-3.5" />
+    </Button>
+  );
+}
+
 export function TraineeWeekPlanner() {
   const { t } = useTranslation();
   const { traineeId: traineeIdStr } = useParams<{ traineeId: string }>();
@@ -1729,6 +1821,11 @@ export function TraineeWeekPlanner() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
+                      <SendWeekPlanButton
+                        plan={plan}
+                        traineeId={traineeId}
+                        traineeName={(trainee as any)?.name ?? `Trainee #${traineeId}`}
+                      />
                       <EditPlanDialog plan={plan} traineeId={traineeId} onSuccess={refetch} />
                       <DeletePlanButton planId={plan.id} weekStart={plan.weekStart} onSuccess={refetch} />
                     </div>
