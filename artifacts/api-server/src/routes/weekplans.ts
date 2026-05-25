@@ -279,7 +279,7 @@ router.post("/:id/send-fit", async (req, res) => {
       accessToken: trainerRow.whatsappAccessToken,
       phoneNumberId: trainerRow.whatsappPhoneNumberId,
       to: toPhone,
-      text: `Your Garmin workout plan for the week of ${detail.weekStart} is ready.\n\nDownload and open with Garmin Connect:\n${downloadUrl}\n\n(Link expires in 48 hours)`,
+      text: `Your workout plan for the week of ${detail.weekStart} is ready.\n\nTo import it into Garmin Connect:\n1. Install Garmin Connect from the Play Store / App Store if you have not already\n2. Tap the link below to download the file\n3. Open the file — it will import automatically into Garmin Connect\n\n${downloadUrl}\n\n(Link expires in 48 hours)`,
     });
 
     return res.json({ ok: true, filename, downloadUrl });
