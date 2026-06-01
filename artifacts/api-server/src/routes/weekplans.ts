@@ -211,6 +211,74 @@ router.delete("/:id/runs/:runId", async (req, res) => {
   res.status(204).end();
 });
 
+// ── GPX export ────────────────────────────────────────────────────────────────
+
+function buildGpxWorkout(plan: {
+  weekStart: string;
+  runs?: Array<{
+    runType: string;
+    name?: string | null;
+    segments?: Array<{
+      resolvedText: string;
+      segmentType?: string | null;
+      durationMinutes?: number | null;
+      distanceKm?: number | null;
+      pace?: string | null;
+    }>;
+  }>;
+}): string {
+  const xmlEsc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const steps: string[] = [];
+  for (const run of plan.runs ?? []) {
+    for (const seg of run.segments ?? []) {
+      const parts: string[] = [seg.resolvedText];
+      if (seg.distanceKm != null)    parts.push(`${seg.distanceKm} km`);
+      if (seg.durationMinutes != null) parts.push(`${seg.durationMinutes} min`);
+      if (seg.pace)                  parts.push(`Pace: ${seg.pace} min/km`);
+      steps.push(
+        `    <wpt lat="0.0" lon="0.0">\n` +
+        `      <name>${xmlEsc(seg.resolvedText.slice(0, 60))}</name>\n` +
+        `      <desc>${xmlEsc(parts.join(" | "))}</desc>\n` +
+        `    </wpt>`
+      );
+    }
+  }
+
+  return [
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<gpx version="1.1" creator="YallaJog Trainer"`,
+    `  xmlns="http://www.topografix.com/GPX/1/1"`,
+    `  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"`,
+    `  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">`,
+    `  <metadata>`,
+    `    <name>${xmlEsc(`Week Plan ${plan.weekStart}`)}</name>`,
+    `    <desc>${xmlEsc(`Training plan for the week of ${plan.weekStart} — exported from YallaJog`)}</desc>`,
+    `    <time>${new Date().toISOString()}</time>`,
+    `  </metadata>`,
+    ...steps,
+    `  <rte>`,
+    `    <name>${xmlEsc(`Week Plan ${plan.weekStart}`)}</name>`,
+    ...steps.map(s => s.replace("<wpt ", "<rtept ").replace("</wpt>", "</rtept>")),
+    `  </rte>`,
+    `</gpx>`,
+  ].join("\n");
+}
+
+router.get("/:id/export-gpx", async (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: "Invalid plan id" });
+  const [plan] = await db.select().from(weekPlansTable).where(eq(weekPlansTable.id, id));
+  if (!plan) return res.status(404).json({ error: "Not found" });
+  const detail = await buildWeekPlanDetail(plan);
+  const gpxStr = buildGpxWorkout(detail);
+  const filename = `workout-${detail.weekStart}.gpx`;
+  res.setHeader("Content-Type", "application/gpx+xml");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  return res.send(gpxStr);
+});
+
 router.get("/:id/export-fit", async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: "Invalid plan id" });

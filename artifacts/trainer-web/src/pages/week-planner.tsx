@@ -1722,7 +1722,15 @@ function formatPlanAsText(plan: any, traineeName: string): string {
   return lines.join("\n");
 }
 
-function DownloadFitButton({ planId, weekStart }: { planId: number; weekStart: string }) {
+function DownloadFileButton({
+  planId,
+  weekStart,
+  format,
+}: {
+  planId: number;
+  weekStart: string;
+  format: "fit" | "gpx";
+}) {
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
 
@@ -1730,7 +1738,7 @@ function DownloadFitButton({ planId, weekStart }: { planId: number; weekStart: s
     if (downloading) return;
     setDownloading(true);
     try {
-      const res = await fetch(`/api/week-plans/${planId}/export-fit`, { credentials: "include" });
+      const res = await fetch(`/api/week-plans/${planId}/export-${format}`, { credentials: "include" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error((data as any).error || "Export failed");
@@ -1739,14 +1747,14 @@ function DownloadFitButton({ planId, weekStart }: { planId: number; weekStart: s
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `workout-${weekStart}.fit`;
+      a.download = `workout-${weekStart}.${format}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
       toast({
-        title: err instanceof Error ? err.message : "Failed to export FIT file",
+        title: err instanceof Error ? err.message : `Failed to export ${format.toUpperCase()} file`,
         variant: "destructive",
       });
     } finally {
@@ -1758,14 +1766,23 @@ function DownloadFitButton({ planId, weekStart }: { planId: number; weekStart: s
     <Button
       variant="ghost"
       size="sm"
-      className="h-7 px-2 text-muted-foreground hover:text-blue-600"
+      className="h-7 px-2 gap-1 text-muted-foreground hover:text-blue-600"
       disabled={downloading}
       onClick={handleDownload}
-      title="Download Garmin FIT file"
+      title={format === "fit" ? "Download Garmin FIT workout file" : "Download GPX file"}
     >
-      <Download className="h-3.5 w-3.5" />
+      <Download className="h-3 w-3" />
+      <span className="text-[10px] font-medium leading-none">.{format.toUpperCase()}</span>
     </Button>
   );
+}
+
+function DownloadFitButton({ planId, weekStart }: { planId: number; weekStart: string }) {
+  return <DownloadFileButton planId={planId} weekStart={weekStart} format="fit" />;
+}
+
+function DownloadGpxButton({ planId, weekStart }: { planId: number; weekStart: string }) {
+  return <DownloadFileButton planId={planId} weekStart={weekStart} format="gpx" />;
 }
 
 function SendFitWhatsAppButton({ planId, weekStart }: { planId: number; weekStart: string }) {
@@ -1939,6 +1956,7 @@ export function TraineeWeekPlanner() {
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
                       <DownloadFitButton planId={plan.id} weekStart={plan.weekStart} />
+                      <DownloadGpxButton planId={plan.id} weekStart={plan.weekStart} />
                       <SendFitWhatsAppButton planId={plan.id} weekStart={plan.weekStart} />
                       <SendWeekPlanButton
                         plan={plan}
