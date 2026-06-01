@@ -48,8 +48,8 @@ export function buildFitWorkout(workoutName: string, steps: FitWorkoutStep[]): B
 
   // file_id — type 5 = workout
   encoder.onMesg(Profile.MesgNum.FILE_ID, {
-    type: 5,             // workout
-    manufacturer: 255,   // development
+    type: "workout",
+    manufacturer: 1,     // Garmin
     product: 0,
     timeCreated: new Date(),
   });

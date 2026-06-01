@@ -26,7 +26,7 @@ router.use(whatsAppWebhookRouter);
 router.get("/fit/:token", (req, res) => {
   const result = getFitFile(req.params.token);
   if (!result) return res.status(404).json({ error: "File not found or link expired" });
-  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Content-Type", "application/vnd.ant.fit");
   res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
   res.setHeader("Content-Length", result.buffer.length);
   return res.send(result.buffer);
