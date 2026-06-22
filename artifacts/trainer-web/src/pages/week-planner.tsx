@@ -1791,6 +1791,12 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ workoutId: string; workoutName: string; stepCount: number } | null>(null);
+
+  function handleClose(v: boolean) {
+    if (!v) { setResult(null); setUsername(""); setPassword(""); }
+    setOpen(v);
+  }
 
   async function handlePush() {
     if (!username || !password) return;
@@ -1804,13 +1810,7 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to push");
-      toast({
-        title: "Workout pushed to Garmin Connect",
-        description: `"${data.workoutName}" — ${data.stepCount} steps. Open Garmin Connect to sync to device.`,
-      });
-      setOpen(false);
-      setUsername("");
-      setPassword("");
+      setResult(data);
     } catch (err) {
       toast({
         title: err instanceof Error ? err.message : "Failed to push to Garmin",
@@ -1822,7 +1822,7 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogTrigger asChild>
         <Button
           variant="ghost"
@@ -1838,35 +1838,65 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
         <DialogHeader>
           <DialogTitle>Push to Garmin Connect</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-muted-foreground">
-          Week of <strong>{weekStart}</strong> will be pushed as a structured workout directly to the Garmin Connect account.
-        </p>
-        <div className="space-y-3 pt-1">
-          <div className="space-y-1.5">
-            <Label>Garmin Email</Label>
-            <Input
-              type="email"
-              placeholder="email@example.com"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              disabled={loading}
-            />
+
+        {result ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-900 p-4 space-y-2">
+              <p className="text-sm font-medium text-green-800 dark:text-green-300">Workout pushed successfully</p>
+              <p className="text-sm text-green-700 dark:text-green-400">
+                <strong>{result.workoutName}</strong> — {result.stepCount} steps
+              </p>
+              {result.workoutId && (
+                <a
+                  href={`https://connect.garmin.com/modern/workout/${result.workoutId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
+                >
+                  View in Garmin Connect →
+                </a>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Open the Garmin Connect app or website, go to <strong>Training → Workouts</strong>, and sync your device to load it.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
+              Close
+            </Button>
           </div>
-          <div className="space-y-1.5">
-            <Label>Garmin Password</Label>
-            <Input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              disabled={loading}
-              onKeyDown={e => e.key === "Enter" && handlePush()}
-            />
-          </div>
-          <Button className="w-full" onClick={handlePush} disabled={loading || !username || !password}>
-            {loading ? "Connecting to Garmin…" : "Push Workout"}
-          </Button>
-        </div>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Week of <strong>{weekStart}</strong> will be pushed as a structured workout to the Garmin Connect account.
+            </p>
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <Label>Garmin Email</Label>
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Garmin Password</Label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={loading}
+                  onKeyDown={e => e.key === "Enter" && handlePush()}
+                />
+              </div>
+              <Button className="w-full" onClick={handlePush} disabled={loading || !username || !password}>
+                {loading ? "Connecting to Garmin…" : "Push Workout"}
+              </Button>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
