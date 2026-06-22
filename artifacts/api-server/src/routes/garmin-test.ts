@@ -140,11 +140,20 @@ router.post("/week-plans/:id/push-to-garmin", async (req, res) => {
 
   try {
     const result = await (gc as any).addWorkout(workout);
+    req.log.info({ garminResult: result }, "Garmin addWorkout raw result");
+    // Garmin Connect returns workoutId at the top level; fallback to nested fields
+    const workoutId =
+      result?.workoutId ??
+      result?.workout?.workoutId ??
+      result?.data?.workoutId ??
+      result?.id ??
+      null;
     return res.json({
       success: true,
-      workoutId: result?.workoutId,
+      workoutId,
       workoutName: result?.workoutName ?? workout.workoutName,
       stepCount: (workout.workoutSegments[0].workoutSteps as any[]).length,
+      _debug: result, // remove after confirming correct field
     });
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to push workout: " + (err?.message ?? String(err)) });
