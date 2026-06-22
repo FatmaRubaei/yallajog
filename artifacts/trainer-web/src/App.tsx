@@ -15,6 +15,7 @@ import AnnouncementList from "@/pages/announcements";
 import EventList from "@/pages/events";
 import ControlPanel from "@/pages/control-panel";
 import WhatsAppPage from "@/pages/whatsapp";
+import GarminTestPage from "@/pages/garmin-test";
 import AuthPage from "@/pages/auth";
 import { authMe, authLogout, type TrainerInfo } from "@/hooks/use-auth";
 
@@ -52,6 +53,7 @@ function Router({ trainer, onLogout }: RouterProps) {
           {() => <ControlPanel trainer={trainer} />}
         </Route>
         <Route path="/whatsapp" component={WhatsAppPage} />
+        <Route path="/garmin-test" component={GarminTestPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

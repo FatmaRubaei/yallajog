@@ -23,6 +23,7 @@
     "express": "^5",
     "express-session": "^1.19.0",
     "fit-encoder": "^0.1.5",
+    "garmin-connect": "^1.6.2",
     "pino": "^9",
     "pino-http": "^10"
   },

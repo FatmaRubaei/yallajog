@@ -12,6 +12,7 @@ import dashboardRouter from "./dashboard";
 import downloadRouter from "./download";
 import trainerWhatsAppRouter from "./trainer-whatsapp";
 import whatsAppWebhookRouter from "./whatsapp-webhook";
+import garminTestRouter from "./garmin-test";
 import { requireAuth } from "../middleware/auth";
 import { getFitFile } from "../lib/fit-store";
 
@@ -34,6 +35,7 @@ router.get("/fit/:token", (req, res) => {
 
 router.use(requireAuth);
 
+router.use(garminTestRouter);
 router.use("/trainees", traineesRouter);
 router.use("/trainees/:id/contract", contractsRouter);
 router.use("/trainees/:id/transactions", transactionsRouter);
