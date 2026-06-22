@@ -1847,19 +1847,19 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
                 <strong>{result.workoutName}</strong> — {result.stepCount} steps
               </p>
               {result.workoutId && (
-                <a
-                  href={`https://connect.garmin.com/app/workout/${result.workoutId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  View in Garmin Connect →
-                </a>
+                <p className="text-xs text-green-600 dark:text-green-500">Workout ID: {result.workoutId}</p>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Open the Garmin Connect app or website, go to <strong>Training → Workouts</strong>, and sync your device to load it.
-            </p>
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-1.5">
+              <p className="text-xs font-medium">How to find it in Garmin Connect:</p>
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Open <a href="https://connect.garmin.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline dark:text-blue-400">connect.garmin.com</a> and log in</li>
+                <li>Go to <strong>Training</strong> in the top menu</li>
+                <li>Click <strong>Workouts</strong></li>
+                <li>Find <strong>{result.workoutName}</strong> in the list</li>
+                <li>Click it, then tap <strong>Send to Device</strong> to push it to the watch</li>
+              </ol>
+            </div>
             <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
               Close
             </Button>
