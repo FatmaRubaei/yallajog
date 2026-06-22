@@ -37,7 +37,7 @@ async function buildRun(run: typeof runsTable.$inferSelect) {
   return { ...run, segments: segsWithNames.sort((a, b) => a.order - b.order) };
 }
 
-async function buildWeekPlanDetail(plan: typeof weekPlansTable.$inferSelect) {
+export async function buildWeekPlanDetail(plan: typeof weekPlansTable.$inferSelect) {
   const [trainee] = await db.select().from(traineesTable).where(eq(traineesTable.id, plan.traineeId));
   const runs = await db.select().from(runsTable).where(eq(runsTable.weekPlanId, plan.id));
   const runsWithSegments = await Promise.all(runs.sort((a, b) => a.order - b.order).map(buildRun));

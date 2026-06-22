@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight, Send, Download } from "lucide-react";
+import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight, Send, Download, Watch } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -1785,6 +1785,93 @@ function DownloadGpxButton({ planId, weekStart }: { planId: number; weekStart: s
   return <DownloadFileButton planId={planId} weekStart={weekStart} format="gpx" />;
 }
 
+function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: string }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handlePush() {
+    if (!username || !password) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/week-plans/${planId}/push-to-garmin`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to push");
+      toast({
+        title: "Workout pushed to Garmin Connect",
+        description: `"${data.workoutName}" — ${data.stepCount} steps. Open Garmin Connect to sync to device.`,
+      });
+      setOpen(false);
+      setUsername("");
+      setPassword("");
+    } catch (err) {
+      toast({
+        title: err instanceof Error ? err.message : "Failed to push to Garmin",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 gap-1 text-muted-foreground hover:text-green-600"
+          title="Push plan to Garmin Connect"
+        >
+          <Watch className="h-3 w-3" />
+          <span className="text-[10px] font-medium leading-none">Garmin</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Push to Garmin Connect</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Week of <strong>{weekStart}</strong> will be pushed as a structured workout directly to the Garmin Connect account.
+        </p>
+        <div className="space-y-3 pt-1">
+          <div className="space-y-1.5">
+            <Label>Garmin Email</Label>
+            <Input
+              type="email"
+              placeholder="email@example.com"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Garmin Password</Label>
+            <Input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              disabled={loading}
+              onKeyDown={e => e.key === "Enter" && handlePush()}
+            />
+          </div>
+          <Button className="w-full" onClick={handlePush} disabled={loading || !username || !password}>
+            {loading ? "Connecting to Garmin…" : "Push Workout"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SendFitWhatsAppButton({ planId, weekStart }: { planId: number; weekStart: string }) {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
@@ -1957,6 +2044,7 @@ export function TraineeWeekPlanner() {
                       <Badge variant="outline">{plan.runs?.length ?? 0} runs</Badge>
                       <DownloadFitButton planId={plan.id} weekStart={plan.weekStart} />
                       <DownloadGpxButton planId={plan.id} weekStart={plan.weekStart} />
+                      <PushToGarminButton planId={plan.id} weekStart={plan.weekStart} />
                       <SendFitWhatsAppButton planId={plan.id} weekStart={plan.weekStart} />
                       <SendWeekPlanButton
                         plan={plan}
