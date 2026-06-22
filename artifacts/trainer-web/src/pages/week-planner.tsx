@@ -1848,7 +1848,7 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
               </p>
               {result.workoutId && (
                 <a
-                  href={`https://connect.garmin.com/workout/${result.workoutId}`}
+                  href={`https://connect.garmin.com/app/workout/${result.workoutId}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
