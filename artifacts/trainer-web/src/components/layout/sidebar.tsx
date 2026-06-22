@@ -13,7 +13,6 @@ import {
   Check,
   Settings,
   LogOut,
-  MessageCircle,
   Watch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,7 +58,6 @@ function NavContent({ onClick, trainer, onLogout }: NavContentProps) {
     { name: t("nav.segments"), href: "/segments", icon: Dumbbell },
     { name: t("nav.announcements"), href: "/announcements", icon: Megaphone },
     { name: t("nav.events"), href: "/events", icon: Flag },
-    { name: "WhatsApp", href: "/whatsapp", icon: MessageCircle },
     { name: "Garmin Test", href: "/garmin-test", icon: Watch },
     { name: "Control Panel", href: "/control-panel", icon: Settings },
   ];

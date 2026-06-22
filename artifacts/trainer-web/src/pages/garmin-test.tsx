@@ -100,7 +100,7 @@ export default function GarminTestPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Garmin Connect — Test</h1>
+        <h1 className="text-2xl font-bold">Garmin Connect - Test</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Unofficial login via reverse-engineered API. For testing only.
         </p>
@@ -126,7 +126,7 @@ export default function GarminTestPage() {
               <Label>Password</Label>
               <Input
                 type="password"
-                placeholder="••••••••"
+                placeholder="........"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 disabled={loading}
@@ -148,7 +148,6 @@ export default function GarminTestPage() {
 
       {data && (
         <div className="space-y-4">
-          {/* Profile */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -165,7 +164,7 @@ export default function GarminTestPage() {
                   />
                 )}
                 <div className="space-y-1">
-                  <p className="font-medium">{profile?.fullName ?? profile?.displayName ?? "—"}</p>
+                  <p className="font-medium">{profile?.fullName ?? profile?.displayName ?? "-"}</p>
                   {profile?.location && <p className="text-sm text-muted-foreground">{profile.location}</p>}
                   {settings?.userInfo?.email && (
                     <p className="text-sm text-muted-foreground">{settings.userInfo.email}</p>
@@ -183,13 +182,12 @@ export default function GarminTestPage() {
             </CardContent>
           </Card>
 
-          {/* Stats row */}
           <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardContent className="pt-4 flex items-center gap-3">
                 <Footprints className="h-8 w-8 text-blue-500" />
                 <div>
-                  <p className="text-2xl font-bold">{data.steps?.toLocaleString() ?? "—"}</p>
+                  <p className="text-2xl font-bold">{data.steps?.toLocaleString() ?? "-"}</p>
                   <p className="text-xs text-muted-foreground">Steps today</p>
                 </div>
               </CardContent>
@@ -198,11 +196,11 @@ export default function GarminTestPage() {
               <CardContent className="pt-4 flex items-center gap-3">
                 <Heart className="h-8 w-8 text-red-500" />
                 <div>
-                  <p className="text-2xl font-bold">{data.heartRate?.restingHeartRate ?? "—"}</p>
+                  <p className="text-2xl font-bold">{data.heartRate?.restingHeartRate ?? "-"}</p>
                   <p className="text-xs text-muted-foreground">Resting HR (bpm)</p>
                   {data.heartRate?.minHeartRate != null && data.heartRate?.maxHeartRate != null && (
                     <p className="text-xs text-muted-foreground">
-                      {data.heartRate.minHeartRate}–{data.heartRate.maxHeartRate} bpm range
+                      {data.heartRate.minHeartRate}-{data.heartRate.maxHeartRate} bpm range
                     </p>
                   )}
                 </div>
@@ -210,7 +208,6 @@ export default function GarminTestPage() {
             </Card>
           </div>
 
-          {/* Activities */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -254,7 +251,6 @@ export default function GarminTestPage() {
             </CardContent>
           </Card>
 
-          {/* Raw JSON toggle */}
           <details className="text-xs">
             <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
               View raw JSON response

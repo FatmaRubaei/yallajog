@@ -27,11 +27,11 @@ router.post("/garmin-test/fetch", async (req, res) => {
     ]);
 
     return res.json({
-      profile:    profile.status    === "fulfilled" ? profile.value    : null,
-      settings:   settings.status   === "fulfilled" ? settings.value   : null,
+      profile: profile.status === "fulfilled" ? profile.value : null,
+      settings: settings.status === "fulfilled" ? settings.value : null,
       activities: activities.status === "fulfilled" ? activities.value : [],
-      steps:      steps.status      === "fulfilled" ? steps.value      : null,
-      heartRate:  heartRate.status  === "fulfilled" ? heartRate.value  : null,
+      steps: steps.status === "fulfilled" ? steps.value : null,
+      heartRate: heartRate.status === "fulfilled" ? heartRate.value : null,
     });
   } catch (err: any) {
     return res.status(500).json({ error: "Data fetch failed: " + (err?.message ?? String(err)) });

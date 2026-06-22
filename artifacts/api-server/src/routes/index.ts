@@ -14,7 +14,6 @@ import trainerWhatsAppRouter from "./trainer-whatsapp";
 import whatsAppWebhookRouter from "./whatsapp-webhook";
 import garminTestRouter from "./garmin-test";
 import { requireAuth } from "../middleware/auth";
-import { getFitFile } from "../lib/fit-store";
 
 const router = Router();
 
@@ -22,16 +21,6 @@ router.use(healthRouter);
 router.use(downloadRouter);
 router.use("/auth", authRouter);
 router.use(whatsAppWebhookRouter);
-
-// Public — no auth — short-lived FIT file download links
-router.get("/fit/:token", (req, res) => {
-  const result = getFitFile(req.params.token);
-  if (!result) return res.status(404).json({ error: "File not found or link expired" });
-  res.setHeader("Content-Type", "application/vnd.ant.fit");
-  res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
-  res.setHeader("Content-Length", result.buffer.length);
-  return res.send(result.buffer);
-});
 
 router.use(requireAuth);
 
