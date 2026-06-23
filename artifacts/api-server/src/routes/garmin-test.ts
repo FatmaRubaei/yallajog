@@ -14,9 +14,11 @@ async function gcLogin(username: string, password: string): Promise<GarminConnec
   return gc;
 }
 
-// ── Minimal correct types (matches RunningTemplate exactly) ───────────────────
-const sportType = { sportTypeId: 1, sportTypeKey: "running" };
-const noTarget  = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target" };
+// ── Minimal correct types ─────────────────────────────────────────────────────
+const sportType    = { sportTypeId: 1, sportTypeKey: "running" };
+// subSportType is REQUIRED by Garmin Connect mobile — web ignores it but mobile crashes without it
+const subSportType = { subSportTypeId: 17, subSportTypeKey: "road" };
+const noTarget     = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target" };
 
 function makeStep(fields: {
   stepOrder:                 number;
@@ -140,6 +142,7 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
   return {
     description:     `YallaJog training plan for week of ${plan.weekStart}`,
     sportType,
+    subSportType,
     workoutName:     `YallaJog – Week of ${plan.weekStart}`,
     workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps }],
   };
@@ -168,6 +171,7 @@ function buildFadiTestWorkout() {
   return {
     description:     "YallaJog test workout",
     sportType,
+    subSportType,
     workoutName:     `YallaJog Test – ${today}`,
     workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps: steps }],
   };
@@ -190,6 +194,7 @@ function buildMinimalTestWorkout() {
   return {
     description:     "YallaJog minimal test",
     sportType,
+    subSportType,
     workoutName:     `YallaJog Minimal – ${today}`,
     workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps: steps }],
   };
