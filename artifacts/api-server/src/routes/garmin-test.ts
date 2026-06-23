@@ -14,20 +14,23 @@ async function gcLogin(username: string, password: string): Promise<GarminConnec
   return gc;
 }
 
-// ── Minimal correct types ─────────────────────────────────────────────────────
-const sportType    = { sportTypeId: 1, sportTypeKey: "running" };
-// subSportType is REQUIRED by Garmin Connect mobile — web ignores it but mobile crashes without it
-const subSportType = { subSportTypeId: 17, subSportTypeKey: "road" };
-const noTarget     = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target" };
+// ── Constants ─────────────────────────────────────────────────────────────────
+const sportType    = { sportTypeId: 1, sportTypeKey: "running", displayOrder: 1 };
+// subSportType is required by Garmin Connect mobile (web ignores it, mobile crashes without it)
+const subSportType = { subSportTypeId: 17, subSportTypeKey: "road", displayOrder: 17 };
+const noTarget     = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target", displayOrder: 1 };
+const STROKE_NONE  = { strokeTypeId: 0, strokeTypeKey: null, displayOrder: 0 };
+const EQUIP_NONE   = { equipmentTypeId: 0, equipmentTypeKey: null, displayOrder: 0 };
 
+// ── Full step (all fields Garmin's Java API requires) ─────────────────────────
 function makeStep(fields: {
   stepOrder:                 number;
   description:               string | null;
-  stepType:                  { stepTypeId: number; stepTypeKey: string };
-  endCondition:              { conditionTypeId: number; conditionTypeKey: string };
+  stepType:                  { stepTypeId: number; stepTypeKey: string; displayOrder: number };
+  endCondition:              object;
   endConditionValue:         number | null;
-  preferredEndConditionUnit: { unitKey: string };
-  targetType:                { workoutTargetTypeId: number; workoutTargetTypeKey: string };
+  preferredEndConditionUnit: object;
+  targetType:                { workoutTargetTypeId: number; workoutTargetTypeKey: string; displayOrder: number };
   targetValueOne:            number | null;
   targetValueTwo:            number | null;
 }) {
@@ -46,34 +49,49 @@ function makeStep(fields: {
     targetType:               fields.targetType,
     targetValueOne:           fields.targetValueOne,
     targetValueTwo:           fields.targetValueTwo,
+    targetValueUnit:          null,
     zoneNumber:               null,
+    secondaryTargetType:      null,
+    secondaryTargetValueOne:  null,
+    secondaryTargetValueTwo:  null,
+    secondaryTargetValueUnit: null,
+    secondaryZoneNumber:      null,
+    strokeType:               STROKE_NONE,
+    equipmentType:            EQUIP_NONE,
+    category:                 null,
+    exerciseName:             null,
+    workoutProvider:          null,
+    providerExerciseSourceId: null,
+    weightValue:              null,
+    weightUnit:               null,
   };
 }
 
+// ── Condition helpers ─────────────────────────────────────────────────────────
 function timeCondition(durationMinutes: number) {
   return {
-    endCondition:              { conditionTypeId: 2, conditionTypeKey: "time" },
+    endCondition:              { conditionTypeKey: "time", conditionTypeId: 2, displayOrder: 2, displayable: true },
     endConditionValue:         Math.round(durationMinutes * 60),
-    preferredEndConditionUnit: { unitKey: "second" },
+    preferredEndConditionUnit: { unitId: 40, unitKey: "second", factor: 1000 },
   };
 }
 
 function distanceCondition(distanceKm: number) {
   return {
-    endCondition:              { conditionTypeId: 3, conditionTypeKey: "distance" },
+    endCondition:              { conditionTypeKey: "distance", conditionTypeId: 3, displayOrder: 3, displayable: true },
     endConditionValue:         Math.round(distanceKm * 1000),
-    preferredEndConditionUnit: { unitKey: "kilometer" },
+    preferredEndConditionUnit: { unitId: 2, unitKey: "kilometer", factor: 100000 },
   };
 }
 
-// Garmin stores pace targets in mm/s (millimeters per second) as integers
+// Garmin stores pace zone targets in mm/s (millimeters per second) as integers
 function paceTarget(paceMinPerKm: string) {
   const [m, s] = paceMinPerKm.split(":").map(Number);
   const totalSec = m * 60 + (s || 0);
   const speedMms = Math.round(1_000_000 / totalSec);
   const range    = Math.round(speedMms * 0.05);
   return {
-    targetType:     { workoutTargetTypeId: 6, workoutTargetTypeKey: "pace.zone" },
+    targetType:     { workoutTargetTypeId: 6, workoutTargetTypeKey: "pace.zone", displayOrder: 6 },
     targetValueOne: speedMms - range,
     targetValueTwo: speedMms + range,
   };
@@ -81,12 +99,12 @@ function paceTarget(paceMinPerKm: string) {
 
 // ── Build Garmin workout from week plan ───────────────────────────────────────
 function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>>) {
-  const stepTypeMap: Record<string, { stepTypeId: number; stepTypeKey: string }> = {
-    warmup:   { stepTypeId: 1, stepTypeKey: "warmup" },
-    cooldown: { stepTypeId: 2, stepTypeKey: "cool_down" },
-    interval: { stepTypeId: 3, stepTypeKey: "interval" },
-    recovery: { stepTypeId: 4, stepTypeKey: "recovery" },
-    rest:     { stepTypeId: 5, stepTypeKey: "rest" },
+  const stepTypeMap: Record<string, { stepTypeId: number; stepTypeKey: string; displayOrder: number }> = {
+    warmup:   { stepTypeId: 1, stepTypeKey: "warmup",    displayOrder: 1 },
+    cooldown: { stepTypeId: 2, stepTypeKey: "cool_down", displayOrder: 2 },
+    interval: { stepTypeId: 3, stepTypeKey: "interval",  displayOrder: 3 },
+    recovery: { stepTypeId: 4, stepTypeKey: "recovery",  displayOrder: 4 },
+    rest:     { stepTypeId: 5, stepTypeKey: "rest",       displayOrder: 5 },
   };
 
   function resolveStepType(text: string) {
@@ -110,9 +128,9 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
         cond = timeCondition(seg.durationMinutes);
       } else {
         cond = {
-          endCondition:              { conditionTypeId: 1, conditionTypeKey: "lap.button" },
+          endCondition:              { conditionTypeKey: "lap.button", conditionTypeId: 1, displayOrder: 1, displayable: true },
           endConditionValue:         null,
-          preferredEndConditionUnit: { unitKey: "kilometer" },
+          preferredEndConditionUnit: { unitId: 2, unitKey: "kilometer", factor: 100000 },
         };
       }
 
@@ -148,24 +166,24 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
   };
 }
 
-// ── Hardcoded 5-step test workout (with pace targets) ─────────────────────────
+// ── Hardcoded 5-step test workout (with pace) ─────────────────────────────────
 function buildFadiTestWorkout() {
   const today = new Date().toISOString().slice(0, 10);
   const steps = [
     makeStep({ stepOrder: 1, description: "Easy warm up jog",
-      stepType: { stepTypeId: 1, stepTypeKey: "warmup" },
+      stepType: { stepTypeId: 1, stepTypeKey: "warmup", displayOrder: 1 },
       ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
     makeStep({ stepOrder: 2, description: "Interval at target pace",
-      stepType: { stepTypeId: 3, stepTypeKey: "interval" },
+      stepType: { stepTypeId: 3, stepTypeKey: "interval", displayOrder: 3 },
       ...distanceCondition(1), ...paceTarget("4:30") }),
-    makeStep({ stepOrder: 3, description: "Recovery rest",
-      stepType: { stepTypeId: 4, stepTypeKey: "recovery" },
+    makeStep({ stepOrder: 3, description: "Recovery",
+      stepType: { stepTypeId: 4, stepTypeKey: "recovery", displayOrder: 4 },
       ...timeCondition(2), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
     makeStep({ stepOrder: 4, description: "Interval at target pace",
-      stepType: { stepTypeId: 3, stepTypeKey: "interval" },
+      stepType: { stepTypeId: 3, stepTypeKey: "interval", displayOrder: 3 },
       ...distanceCondition(1), ...paceTarget("4:30") }),
     makeStep({ stepOrder: 5, description: "Easy cool down jog",
-      stepType: { stepTypeId: 2, stepTypeKey: "cool_down" },
+      stepType: { stepTypeId: 2, stepTypeKey: "cool_down", displayOrder: 2 },
       ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
   ];
   return {
@@ -177,18 +195,18 @@ function buildFadiTestWorkout() {
   };
 }
 
-// ── Ultra-minimal test (3 time steps, no pace — for diagnosing mobile issues) ─
+// ── Ultra-minimal 3-step test (no pace, time only) ────────────────────────────
 function buildMinimalTestWorkout() {
   const today = new Date().toISOString().slice(0, 10);
   const steps = [
     makeStep({ stepOrder: 1, description: "Warm up",
-      stepType: { stepTypeId: 1, stepTypeKey: "warmup" },
+      stepType: { stepTypeId: 1, stepTypeKey: "warmup", displayOrder: 1 },
       ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
     makeStep({ stepOrder: 2, description: "Run",
-      stepType: { stepTypeId: 3, stepTypeKey: "interval" },
+      stepType: { stepTypeId: 3, stepTypeKey: "interval", displayOrder: 3 },
       ...timeCondition(20), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
     makeStep({ stepOrder: 3, description: "Cool down",
-      stepType: { stepTypeId: 2, stepTypeKey: "cool_down" },
+      stepType: { stepTypeId: 2, stepTypeKey: "cool_down", displayOrder: 2 },
       ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
   ];
   return {
@@ -200,7 +218,7 @@ function buildMinimalTestWorkout() {
   };
 }
 
-// ── Shared push helper ────────────────────────────────────────────────────────
+// ── Shared push helper (logs exact payload) ───────────────────────────────────
 async function pushWorkout(gc: GarminConnect, workout: object, log: any) {
   log.info({ payload: JSON.stringify(workout) }, "Garmin push payload");
   const result = await (gc as any).addWorkout(workout);
