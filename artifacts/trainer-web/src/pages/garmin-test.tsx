@@ -86,6 +86,32 @@ export default function GarminTestPage() {
   const [cleanupError, setCleanupError]     = useState<string | null>(null);
   const [cleanupResult, setCleanupResult]   = useState<{ total: number; deleted: number; failed: number } | null>(null);
 
+  const [minimalLoading, setMinimalLoading] = useState(false);
+  const [minimalError, setMinimalError]     = useState<string | null>(null);
+  const [minimalResult, setMinimalResult]   = useState<PushResult | null>(null);
+
+  async function handlePushMinimal() {
+    if (!username || !password) return;
+    setMinimalLoading(true);
+    setMinimalError(null);
+    setMinimalResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/push-minimal", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setMinimalResult(json as PushResult);
+    } catch (err) {
+      setMinimalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setMinimalLoading(false);
+    }
+  }
+
   async function handleCleanup() {
     if (!username || !password) return;
     setCleanupLoading(true);
@@ -209,6 +235,16 @@ export default function GarminTestPage() {
                 : <><Watch className="h-4 w-4" />Push Test Plan (Fadi Karkaby)</>}
             </Button>
             <Button
+              variant="secondary"
+              onClick={handlePushMinimal}
+              disabled={minimalLoading || !username || !password}
+              className="gap-2"
+            >
+              {minimalLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
+                : "Push Minimal Test (3 steps, no pace)"}
+            </Button>
+            <Button
               variant="destructive"
               onClick={handleCleanup}
               disabled={cleanupLoading || !username || !password}
@@ -221,6 +257,21 @@ export default function GarminTestPage() {
           </div>
         </CardContent>
       </Card>
+
+      {minimalError && (
+        <Alert variant="destructive">
+          <AlertDescription>{minimalError}</AlertDescription>
+        </Alert>
+      )}
+
+      {minimalResult && (
+        <Alert>
+          <AlertDescription>
+            Minimal workout pushed — <strong>{minimalResult.workoutName}</strong> ({minimalResult.stepCount} steps, no pace targets).
+            Check Garmin Connect mobile → Training → Workouts. If this opens, the issue is with pace zone values.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {cleanupError && (
         <Alert variant="destructive">
