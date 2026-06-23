@@ -90,6 +90,49 @@ export default function GarminTestPage() {
   const [minimalError, setMinimalError]     = useState<string | null>(null);
   const [minimalResult, setMinimalResult]   = useState<PushResult | null>(null);
 
+  const [simpleLoading, setSimpleLoading] = useState(false);
+  const [simpleError, setSimpleError]     = useState<string | null>(null);
+  const [simpleResult, setSimpleResult]   = useState<{ workoutId: string; workoutName: string } | null>(null);
+
+  const [detailId, setDetailId]           = useState("");
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError]     = useState<string | null>(null);
+  const [detailJson, setDetailJson]       = useState<object | null>(null);
+
+  async function handlePushSimple() {
+    if (!username || !password) return;
+    setSimpleLoading(true); setSimpleError(null); setSimpleResult(null);
+    try {
+      const res  = await fetch("/api/garmin-test/push-running-simple", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setSimpleResult(json);
+    } catch (err) {
+      setSimpleError(err instanceof Error ? err.message : String(err));
+    } finally { setSimpleLoading(false); }
+  }
+
+  async function handleFetchDetail() {
+    if (!username || !password || !detailId.trim()) return;
+    setDetailLoading(true); setDetailError(null); setDetailJson(null);
+    try {
+      const res  = await fetch("/api/garmin-test/workout-detail", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, workoutId: Number(detailId.trim()) }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setDetailJson(json);
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : String(err));
+    } finally { setDetailLoading(false); }
+  }
+
   async function handlePushMinimal() {
     if (!username || !password) return;
     setMinimalLoading(true);
@@ -254,9 +297,80 @@ export default function GarminTestPage() {
                 ? <><Loader2 className="h-4 w-4 animate-spin" />Deleting...</>
                 : "Delete All YallaJog Workouts from Garmin"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={handlePushSimple}
+              disabled={simpleLoading || !username || !password}
+              className="gap-2 border-orange-300 text-orange-700 hover:bg-orange-50"
+            >
+              {simpleLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
+                : "Push Library Simple Run (diagnostic)"}
+            </Button>
+          </div>
+
+          <div className="border-t pt-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Fetch workout detail by ID (paste any workoutId from a push result)</p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Workout ID (e.g. 1609993835)"
+                value={detailId}
+                onChange={e => setDetailId(e.target.value)}
+                className="max-w-64 font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleFetchDetail}
+                disabled={detailLoading || !username || !password || !detailId.trim()}
+              >
+                {detailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch Detail"}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {simpleError && (
+        <Alert variant="destructive">
+          <AlertDescription>{simpleError}</AlertDescription>
+        </Alert>
+      )}
+
+      {simpleResult && (
+        <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/30">
+          <AlertDescription>
+            <p className="font-medium">Library simple run pushed — <strong>{simpleResult.workoutName}</strong></p>
+            {simpleResult.workoutId && (
+              <p className="text-xs mt-1 font-mono">Workout ID: {simpleResult.workoutId}</p>
+            )}
+            <p className="text-xs mt-1 text-muted-foreground">
+              Open Garmin Connect mobile → Training → Workouts.
+              If THIS one loads but our workouts don't, the issue is in our step structure.
+              If this also shows a loading screen, it's a Garmin app/account limitation.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {detailError && (
+        <Alert variant="destructive">
+          <AlertDescription>{detailError}</AlertDescription>
+        </Alert>
+      )}
+
+      {detailJson && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Workout Detail JSON (what Garmin stores)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-muted p-3 rounded overflow-auto max-h-[500px] text-[10px] leading-relaxed">
+              {JSON.stringify(detailJson, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
 
       {minimalError && (
         <Alert variant="destructive">

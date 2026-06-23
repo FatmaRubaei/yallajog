@@ -418,6 +418,27 @@ router.post("/garmin-test/delete-all-workouts", async (req, res) => {
   }
 });
 
+// Uses the library's own built-in addRunningWorkout (Running class) — the simplest guaranteed format
+router.post("/garmin-test/push-running-simple", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const name  = `YallaJog Run – ${today}`;
+    const result = await (gc as any).addRunningWorkout(name, 5000, "Simple 5km test run from YallaJog");
+    req.log.info({ simpleRunResult: result }, "addRunningWorkout result");
+    const workoutId = result?.workoutId ?? result?.workout?.workoutId ?? null;
+    return res.json({ success: true, workoutId, workoutName: result?.workoutName ?? name });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 router.post("/garmin-test/workout-detail", async (req, res) => {
   const { username, password, workoutId } = req.body as { username?: string; password?: string; workoutId?: number };
   if (!username || !password || !workoutId) return res.status(400).json({ error: "username, password, and workoutId required" });
