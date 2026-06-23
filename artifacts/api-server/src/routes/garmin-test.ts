@@ -48,17 +48,17 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
       let preferredUnit: object;
 
       if (seg.distanceKm != null && seg.distanceKm > 0) {
-        endCondition = { conditionTypeKey: "distance", conditionTypeId: 3 };
+        endCondition = { conditionTypeKey: "distance", conditionTypeId: 3, displayOrder: 3, displayable: true };
         endConditionValue = Math.round(seg.distanceKm * 1000); // meters
-        preferredUnit = { unitKey: "kilometer" };
+        preferredUnit = { unitId: 2, unitKey: "kilometer", factor: 100000 };
       } else if (seg.durationMinutes != null && seg.durationMinutes > 0) {
-        endCondition = { conditionTypeKey: "time", conditionTypeId: 2 };
+        endCondition = { conditionTypeKey: "time", conditionTypeId: 2, displayOrder: 2, displayable: true };
         endConditionValue = Math.round(seg.durationMinutes * 60); // seconds
-        preferredUnit = { unitKey: "second" };
+        preferredUnit = { unitId: 40, unitKey: "second", factor: 1000 };
       } else {
-        endCondition = { conditionTypeKey: "lap.button", conditionTypeId: 1 };
+        endCondition = { conditionTypeKey: "lap.button", conditionTypeId: 1, displayOrder: 1, displayable: true };
         endConditionValue = null;
-        preferredUnit = { unitKey: "kilometer" };
+        preferredUnit = { unitId: 2, unitKey: "kilometer", factor: 100000 };
       }
 
       // Pace target if available
@@ -68,13 +68,14 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
 
       if (seg.pace) {
         const [m, s] = seg.pace.split(":").map(Number);
-        if (!isNaN(m)) {
+        if (!isNaN(m) && (m > 0 || s > 0)) {
           const totalSec = m * 60 + (s || 0);
           const speedMs = 1000 / totalSec; // m/s
           const range = speedMs * 0.05;    // ±5%
           targetType = { workoutTargetTypeId: 6, workoutTargetTypeKey: "pace.zone" };
-          targetValueOne  = Math.round((speedMs - range) * 1000); // mm/s low
-          targetValueTwo  = Math.round((speedMs + range) * 1000); // mm/s high
+          // Garmin expects m/s as a float (NOT mm/s)
+          targetValueOne  = +((speedMs - range).toFixed(4)); // slower bound
+          targetValueTwo  = +((speedMs + range).toFixed(4)); // faster bound
         }
       }
 
