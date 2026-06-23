@@ -84,12 +84,13 @@ function distanceCondition(distanceKm: number) {
 function paceTarget(paceMinPerKm: string) {
   const [m, s] = paceMinPerKm.split(":").map(Number);
   const totalSec = m * 60 + (s || 0);
-  const speedMs  = 1000 / totalSec;
-  const range    = speedMs * 0.05;
+  // Garmin stores pace targets in mm/s (millimeters per second) as integers
+  const speedMms = Math.round(1_000_000 / totalSec);
+  const range    = Math.round(speedMms * 0.05);
   return {
     targetType:     { workoutTargetTypeId: 6, workoutTargetTypeKey: "pace.zone" },
-    targetValueOne: +((speedMs - range).toFixed(4)),
-    targetValueTwo: +((speedMs + range).toFixed(4)),
+    targetValueOne: speedMms - range,
+    targetValueTwo: speedMms + range,
   };
 }
 
