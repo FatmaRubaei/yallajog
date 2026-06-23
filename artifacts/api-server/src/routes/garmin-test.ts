@@ -418,6 +418,22 @@ router.post("/garmin-test/delete-all-workouts", async (req, res) => {
   }
 });
 
+router.post("/garmin-test/workout-detail", async (req, res) => {
+  const { username, password, workoutId } = req.body as { username?: string; password?: string; workoutId?: number };
+  if (!username || !password || !workoutId) return res.status(400).json({ error: "username, password, and workoutId required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const detail = await (gc as any).getWorkoutDetail({ workoutId });
+    return res.json(detail);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 router.post("/garmin-test/fetch", async (req, res) => {
   const { username, password } = req.body as { username?: string; password?: string };
   if (!username || !password) return res.status(400).json({ error: "username and password are required" });
