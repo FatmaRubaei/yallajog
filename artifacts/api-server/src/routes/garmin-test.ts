@@ -15,10 +15,10 @@ async function gcLogin(username: string, password: string): Promise<GarminConnec
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const sportType    = { sportTypeId: 1, sportTypeKey: "running", displayOrder: 1 };
-// subSportType is required by Garmin Connect mobile (web ignores it, mobile crashes without it)
-const subSportType = { subSportTypeId: 17, subSportTypeKey: "road", displayOrder: 17 };
-const noTarget     = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target", displayOrder: 1 };
+const sportType = { sportTypeId: 1, sportTypeKey: "running", displayOrder: 1 };
+// NOTE: subSportType is NOT sent in POST body — Garmin's API rejects it (MismatchedInputException).
+// Garmin always stores it as null server-side regardless of what we send.
+const noTarget  = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target", displayOrder: 1 };
 const STROKE_NONE  = { strokeTypeId: 0, strokeTypeKey: null, displayOrder: 0 };
 const EQUIP_NONE   = { equipmentTypeId: 0, equipmentTypeKey: null, displayOrder: 0 };
 
@@ -160,7 +160,6 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
   return {
     description:     `YallaJog training plan for week of ${plan.weekStart}`,
     sportType,
-    subSportType,
     workoutName:     `YallaJog – Week of ${plan.weekStart}`,
     workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps }],
   };
@@ -189,7 +188,6 @@ function buildFadiTestWorkout() {
   return {
     description:     "YallaJog test workout",
     sportType,
-    subSportType,
     workoutName:     `YallaJog Test – ${today}`,
     workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps: steps }],
   };
@@ -212,7 +210,6 @@ function buildMinimalTestWorkout() {
   return {
     description:     "YallaJog minimal test",
     sportType,
-    subSportType,
     workoutName:     `YallaJog Minimal – ${today}`,
     workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps: steps }],
   };
