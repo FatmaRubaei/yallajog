@@ -224,6 +224,21 @@ async function pushWorkout(gc: GarminConnect, workout: object, log: any) {
   return { workoutId, workoutName: (result as any)?.workoutName ?? (workout as any).workoutName };
 }
 
+// ── Schedule workout to a calendar date (fixes mobile app loading screen) ─────
+// Garmin Connect mobile opens library workouts unreliably but opens scheduled
+// workouts correctly from the Calendar / Training Plan view.
+async function scheduleWorkout(gc: GarminConnect, workoutId: number, date: string, log: any) {
+  const url = `https://connectapi.garmin.com/workout-service/schedule/${workoutId}`;
+  try {
+    const result = await (gc as any).client.post(url, { date });
+    log.info({ scheduleResult: result }, "Garmin schedule result");
+    return { scheduled: true, scheduleId: result?.scheduleId ?? result?.id ?? null };
+  } catch (err: any) {
+    log.warn({ err: err?.message }, "Garmin schedule failed (non-fatal)");
+    return { scheduled: false, error: err?.message ?? String(err) };
+  }
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 router.post("/week-plans/:id/push-to-garmin", async (req, res) => {
@@ -246,7 +261,16 @@ router.post("/week-plans/:id/push-to-garmin", async (req, res) => {
 
   try {
     const { workoutId, workoutName } = await pushWorkout(gc, workout, req.log);
-    return res.json({ success: true, workoutId, workoutName, stepCount: (workout.workoutSegments[0].workoutSteps as any[]).length });
+    // Schedule the workout to the week's Monday so mobile opens it from Calendar view
+    const schedule = workoutId ? await scheduleWorkout(gc, workoutId, plan.weekStart, req.log) : { scheduled: false };
+    return res.json({
+      success: true, workoutId, workoutName,
+      stepCount: (workout.workoutSegments[0].workoutSteps as any[]).length,
+      scheduled: schedule.scheduled,
+      scheduleNote: schedule.scheduled
+        ? `Workout scheduled to ${plan.weekStart} — open Garmin Connect mobile → Calendar to see it`
+        : `Scheduled to library only (${(schedule as any).error ?? "schedule step skipped"})`,
+    });
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to push workout: " + (err?.message ?? String(err)) });
   }
