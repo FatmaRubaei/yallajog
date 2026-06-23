@@ -97,6 +97,58 @@ function paceTarget(paceMinPerKm: string) {
   };
 }
 
+// ── Estimate workout duration/distance/speed from steps ───────────────────────
+interface StepEstimate {
+  durationSecs:  number;
+  distanceM:     number;
+  avgSpeedMps:   number;   // m/s
+}
+
+function estimateSteps(steps: ReturnType<typeof makeStep>[]): StepEstimate {
+  let totalDurationSecs = 0;
+  let totalDistanceM    = 0;
+
+  for (const s of steps as any[]) {
+    const cond  = s.endCondition?.conditionTypeKey;
+    const value = s.endConditionValue ?? 0;
+    const tgt1  = s.targetValueOne;
+    const tgt2  = s.targetValueTwo;
+
+    if (cond === "time") {
+      // value is seconds
+      totalDurationSecs += value;
+      // if there's a pace zone, estimate distance = speed × time
+      if (tgt1 && tgt2) {
+        const avgSpeedMms = (tgt1 + tgt2) / 2;   // mm/s
+        const avgSpeedMps = avgSpeedMms / 1000;
+        totalDistanceM   += avgSpeedMps * value;
+      }
+    } else if (cond === "distance") {
+      // value is meters
+      totalDistanceM    += value;
+      // if there's a pace zone, estimate duration = distance / speed
+      if (tgt1 && tgt2) {
+        const avgSpeedMms = (tgt1 + tgt2) / 2;
+        const avgSpeedMps = avgSpeedMms / 1000;
+        if (avgSpeedMps > 0) totalDurationSecs += value / avgSpeedMps;
+      } else {
+        // default 5:00/km = 3.33 m/s
+        totalDurationSecs += value / 3.33;
+      }
+    }
+  }
+
+  const avgSpeedMps = totalDurationSecs > 0 && totalDistanceM > 0
+    ? totalDistanceM / totalDurationSecs
+    : 3.0;  // default ~5:33/km
+
+  return {
+    durationSecs:  Math.round(totalDurationSecs),
+    distanceM:     Math.round(totalDistanceM),
+    avgSpeedMps:   Math.round(avgSpeedMps * 100) / 100,
+  };
+}
+
 // ── Build Garmin workout from week plan ───────────────────────────────────────
 function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>>) {
   const stepTypeMap: Record<string, { stepTypeId: number; stepTypeKey: string; displayOrder: number }> = {
@@ -157,11 +209,22 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
     }
   }
 
+  const est = estimateSteps(workoutSteps as any);
+
   return {
-    description:     `YallaJog training plan for week of ${plan.weekStart}`,
+    description:              `YallaJog training plan for week of ${plan.weekStart}`,
     sportType,
-    workoutName:     `YallaJog – Week of ${plan.weekStart}`,
-    workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps }],
+    workoutName:              `YallaJog – Week of ${plan.weekStart}`,
+    estimatedDurationInSecs:  est.durationSecs  || null,
+    estimatedDistanceInMeters: est.distanceM    || null,
+    workoutSegments: [{
+      segmentOrder:              1,
+      sportType,
+      avgTrainingSpeed:          est.avgSpeedMps,
+      estimatedDurationInSecs:   est.durationSecs  || null,
+      estimatedDistanceInMeters: est.distanceM     || null,
+      workoutSteps,
+    }],
   };
 }
 
@@ -185,11 +248,21 @@ function buildFadiTestWorkout() {
       stepType: { stepTypeId: 2, stepTypeKey: "cool_down", displayOrder: 2 },
       ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
   ];
+  const est = estimateSteps(steps as any);
   return {
-    description:     "YallaJog test workout",
+    description:               "YallaJog test workout",
     sportType,
-    workoutName:     `YallaJog Test – ${today}`,
-    workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps: steps }],
+    workoutName:               `YallaJog Test – ${today}`,
+    estimatedDurationInSecs:   est.durationSecs  || null,
+    estimatedDistanceInMeters: est.distanceM     || null,
+    workoutSegments: [{
+      segmentOrder:              1,
+      sportType,
+      avgTrainingSpeed:          est.avgSpeedMps,
+      estimatedDurationInSecs:   est.durationSecs  || null,
+      estimatedDistanceInMeters: est.distanceM     || null,
+      workoutSteps:              steps,
+    }],
   };
 }
 
@@ -207,11 +280,21 @@ function buildMinimalTestWorkout() {
       stepType: { stepTypeId: 2, stepTypeKey: "cool_down", displayOrder: 2 },
       ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
   ];
+  const est = estimateSteps(steps as any);
   return {
-    description:     "YallaJog minimal test",
+    description:               "YallaJog minimal test",
     sportType,
-    workoutName:     `YallaJog Minimal – ${today}`,
-    workoutSegments: [{ segmentOrder: 1, sportType, workoutSteps: steps }],
+    workoutName:               `YallaJog Minimal – ${today}`,
+    estimatedDurationInSecs:   est.durationSecs  || null,
+    estimatedDistanceInMeters: est.distanceM     || null,
+    workoutSegments: [{
+      segmentOrder:              1,
+      sportType,
+      avgTrainingSpeed:          est.avgSpeedMps,
+      estimatedDurationInSecs:   est.durationSecs  || null,
+      estimatedDistanceInMeters: est.distanceM     || null,
+      workoutSteps:              steps,
+    }],
   };
 }
 
