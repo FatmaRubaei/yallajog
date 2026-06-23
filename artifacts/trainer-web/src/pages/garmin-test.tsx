@@ -78,9 +78,35 @@ export default function GarminTestPage() {
   const [error, setError]       = useState<string | null>(null);
   const [data, setData]         = useState<GarminData | null>(null);
 
-  const [pushLoading, setPushLoading] = useState(false);
-  const [pushError, setPushError]     = useState<string | null>(null);
-  const [pushResult, setPushResult]   = useState<PushResult | null>(null);
+  const [pushLoading, setPushLoading]       = useState(false);
+  const [pushError, setPushError]           = useState<string | null>(null);
+  const [pushResult, setPushResult]         = useState<PushResult | null>(null);
+
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [cleanupError, setCleanupError]     = useState<string | null>(null);
+  const [cleanupResult, setCleanupResult]   = useState<{ total: number; deleted: number; failed: number } | null>(null);
+
+  async function handleCleanup() {
+    if (!username || !password) return;
+    setCleanupLoading(true);
+    setCleanupError(null);
+    setCleanupResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/delete-all-workouts", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setCleanupResult(json);
+    } catch (err) {
+      setCleanupError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCleanupLoading(false);
+    }
+  }
 
   async function handleFetch() {
     setLoading(true);
@@ -182,9 +208,35 @@ export default function GarminTestPage() {
                 ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
                 : <><Watch className="h-4 w-4" />Push Test Plan (Fadi Karkaby)</>}
             </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCleanup}
+              disabled={cleanupLoading || !username || !password}
+              className="gap-2"
+            >
+              {cleanupLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Deleting...</>
+                : "Delete All YallaJog Workouts from Garmin"}
+            </Button>
           </div>
         </CardContent>
       </Card>
+
+      {cleanupError && (
+        <Alert variant="destructive">
+          <AlertDescription>{cleanupError}</AlertDescription>
+        </Alert>
+      )}
+
+      {cleanupResult && (
+        <Alert>
+          <AlertDescription>
+            Cleanup done — found {cleanupResult.total} YallaJog workout{cleanupResult.total !== 1 ? "s" : ""},{" "}
+            deleted {cleanupResult.deleted}{cleanupResult.failed > 0 ? `, ${cleanupResult.failed} failed` : ""}.
+            {cleanupResult.deleted > 0 && " Now push a fresh workout."}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {pushError && (
         <Alert variant="destructive">

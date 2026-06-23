@@ -288,6 +288,45 @@ router.post("/garmin-test/push-fadi-test", async (req, res) => {
   }
 });
 
+// ── Delete all YallaJog workouts from Garmin (cleanup broken pushes) ──────────
+router.post("/garmin-test/delete-all-workouts", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) {
+    return res.status(400).json({ error: "username and password are required" });
+  }
+
+  let gc: GarminConnect;
+  try {
+    gc = await gcLogin(username, password);
+  } catch (err: any) {
+    return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) });
+  }
+
+  try {
+    const workouts: any[] = await (gc as any).getWorkouts(0, 200);
+    const toDelete = workouts.filter((w: any) =>
+      typeof w.workoutName === "string" &&
+      (w.workoutName.toLowerCase().includes("yallajog") || w.workoutName.toLowerCase().includes("yalla jog"))
+    );
+
+    let deleted = 0;
+    let failed  = 0;
+    for (const w of toDelete) {
+      try {
+        await (gc as any).deleteWorkout(w);
+        deleted++;
+      } catch {
+        failed++;
+      }
+    }
+
+    req.log.info({ total: toDelete.length, deleted, failed }, "Garmin cleanup done");
+    return res.json({ success: true, total: toDelete.length, deleted, failed });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Cleanup failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 // ── Garmin data fetch ──────────────────────────────────────────────────────────
 router.post("/garmin-test/fetch", async (req, res) => {
   const { username, password } = req.body as { username?: string; password?: string };
