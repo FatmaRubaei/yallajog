@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Activity, Heart, Footprints, User } from "lucide-react";
+import { Loader2, Activity, Heart, Footprints, User, Watch } from "lucide-react";
 
 interface GarminActivity {
   activityId: number;
@@ -45,6 +45,12 @@ interface GarminData {
   } | null;
 }
 
+interface PushResult {
+  workoutId: string;
+  workoutName: string;
+  stepCount: number;
+}
+
 function fmtDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -68,9 +74,13 @@ function fmtPace(metersPerSec: number) {
 export default function GarminTestPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<GarminData | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+  const [data, setData]         = useState<GarminData | null>(null);
+
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError]     = useState<string | null>(null);
+  const [pushResult, setPushResult]   = useState<PushResult | null>(null);
 
   async function handleFetch() {
     setLoading(true);
@@ -93,8 +103,30 @@ export default function GarminTestPage() {
     }
   }
 
-  const profile = data?.profile;
-  const settings = data?.settings;
+  async function handlePushFadiTest() {
+    if (!username || !password) return;
+    setPushLoading(true);
+    setPushError(null);
+    setPushResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/push-fadi-test", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setPushResult(json as PushResult);
+    } catch (err) {
+      setPushError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPushLoading(false);
+    }
+  }
+
+  const profile    = data?.profile;
+  const settings   = data?.settings;
   const activities = data?.activities ?? [];
 
   return (
@@ -119,7 +151,7 @@ export default function GarminTestPage() {
                 placeholder="garmin@email.com"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                disabled={loading}
+                disabled={loading || pushLoading}
               />
             </div>
             <div className="space-y-1.5">
@@ -129,16 +161,67 @@ export default function GarminTestPage() {
                 placeholder="........"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                disabled={loading}
+                disabled={loading || pushLoading}
                 onKeyDown={e => e.key === "Enter" && handleFetch()}
               />
             </div>
           </div>
-          <Button onClick={handleFetch} disabled={loading || !username || !password}>
-            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Connecting...</> : "Fetch Data"}
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleFetch} disabled={loading || !username || !password}>
+              {loading
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Connecting...</>
+                : "Fetch Data"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handlePushFadiTest}
+              disabled={pushLoading || !username || !password}
+              className="gap-2"
+            >
+              {pushLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
+                : <><Watch className="h-4 w-4" />Push Test Plan (Fadi Karkaby)</>}
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      {pushError && (
+        <Alert variant="destructive">
+          <AlertDescription>{pushError}</AlertDescription>
+        </Alert>
+      )}
+
+      {pushResult && (
+        <Card className="border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-900">
+          <CardContent className="pt-4 space-y-3">
+            <p className="text-sm font-medium text-green-800 dark:text-green-300">
+              Test workout pushed successfully
+            </p>
+            <p className="text-sm text-green-700 dark:text-green-400">
+              <strong>{pushResult.workoutName}</strong> — {pushResult.stepCount} steps
+            </p>
+            {pushResult.workoutId && (
+              <p className="text-xs text-green-600 dark:text-green-500">
+                Workout ID: {pushResult.workoutId}
+              </p>
+            )}
+            <div className="rounded-md border bg-white/60 dark:bg-black/20 p-3 space-y-1">
+              <p className="text-xs font-medium">Steps in this test plan:</p>
+              <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
+                <li>Warmup — 10 min easy jog</li>
+                <li>Interval — 1 km @ 4:30 /km pace zone</li>
+                <li>Rest — 2 min</li>
+                <li>Interval — 1 km @ 4:30 /km pace zone</li>
+                <li>Cool down — 10 min easy jog</li>
+              </ol>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Open Garmin Connect app on mobile → Training → Workouts to verify it loads correctly.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {error && (
         <Alert variant="destructive">
@@ -171,9 +254,9 @@ export default function GarminTestPage() {
                   )}
                   {settings?.userData && (
                     <div className="flex gap-3 text-xs text-muted-foreground pt-1">
-                      {settings.userData.gender && <span>{settings.userData.gender}</span>}
-                      {settings.userData.weight && <span>{(settings.userData.weight / 1000).toFixed(1)} kg</span>}
-                      {settings.userData.height && <span>{settings.userData.height} cm</span>}
+                      {settings.userData.gender    && <span>{settings.userData.gender}</span>}
+                      {settings.userData.weight    && <span>{(settings.userData.weight / 1000).toFixed(1)} kg</span>}
+                      {settings.userData.height    && <span>{settings.userData.height} cm</span>}
                       {settings.userData.birthDate && <span>Born {settings.userData.birthDate}</span>}
                     </div>
                   )}
@@ -200,7 +283,7 @@ export default function GarminTestPage() {
                   <p className="text-xs text-muted-foreground">Resting HR (bpm)</p>
                   {data.heartRate?.minHeartRate != null && data.heartRate?.maxHeartRate != null && (
                     <p className="text-xs text-muted-foreground">
-                      {data.heartRate.minHeartRate}-{data.heartRate.maxHeartRate} bpm range
+                      {data.heartRate.minHeartRate}–{data.heartRate.maxHeartRate} bpm range
                     </p>
                   )}
                 </div>
@@ -234,15 +317,11 @@ export default function GarminTestPage() {
                         </div>
                       </div>
                       <div className="text-right text-xs text-muted-foreground shrink-0 space-y-0.5">
-                        {act.distance != null && act.distance > 0 && (
-                          <p>{fmtDistance(act.distance)}</p>
-                        )}
+                        {act.distance != null && act.distance > 0 && <p>{fmtDistance(act.distance)}</p>}
                         {act.duration != null && <p>{fmtDuration(act.duration)}</p>}
-                        {act.averageSpeed != null && act.averageSpeed > 0 && (
-                          <p>{fmtPace(act.averageSpeed)}</p>
-                        )}
+                        {act.averageSpeed != null && act.averageSpeed > 0 && <p>{fmtPace(act.averageSpeed)}</p>}
                         {act.averageHR != null && <p>{act.averageHR} bpm avg</p>}
-                        {act.calories != null && <p>{act.calories} kcal</p>}
+                        {act.calories != null  && <p>{act.calories} kcal</p>}
                       </div>
                     </div>
                   ))}
