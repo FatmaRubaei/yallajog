@@ -1952,20 +1952,17 @@ function ScheduleToGarminButton({ planId, savedWorkoutId }: { planId: number; sa
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [manualWorkoutId, setManualWorkoutId] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<{ date: string } | null>(null);
 
-  const effectiveWorkoutId = savedWorkoutId || manualWorkoutId;
-
   function handleClose(v: boolean) {
-    if (!v) { setUsername(""); setPassword(""); setManualWorkoutId(""); setScheduleDate(""); setDone(null); }
+    if (!v) { setUsername(""); setPassword(""); setScheduleDate(""); setDone(null); }
     setOpen(v);
   }
 
   async function handleSchedule() {
-    if (!username || !password || !effectiveWorkoutId || !scheduleDate) return;
+    if (!username || !password || !scheduleDate) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/week-plans/${planId}/schedule-to-garmin`, {
@@ -2001,7 +1998,14 @@ function ScheduleToGarminButton({ planId, savedWorkoutId }: { planId: number; sa
         <DialogHeader>
           <DialogTitle>Schedule to Garmin Calendar</DialogTitle>
         </DialogHeader>
-        {done ? (
+        {!savedWorkoutId ? (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              No Garmin workout saved for this plan yet. Use the <strong>Garmin</strong> button to push it to your library first.
+            </p>
+            <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>Close</Button>
+          </div>
+        ) : done ? (
           <div className="space-y-4">
             <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900 p-3 space-y-1">
               <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Scheduled to {done.date}</p>
@@ -2013,22 +2017,10 @@ function ScheduleToGarminButton({ planId, savedWorkoutId }: { planId: number; sa
           </div>
         ) : (
           <div className="space-y-3">
-            {savedWorkoutId ? (
-              <div className="rounded-lg border bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Workout ID</p>
-                <p className="text-sm font-mono font-medium">{savedWorkoutId}</p>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Push the workout to Garmin first, then schedule it. Or enter a workout ID manually.
-                </p>
-                <div className="space-y-1.5">
-                  <Label>Workout ID</Label>
-                  <Input type="number" placeholder="e.g. 123456789" value={manualWorkoutId} onChange={e => setManualWorkoutId(e.target.value)} disabled={loading} />
-                </div>
-              </>
-            )}
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Workout ID</p>
+              <p className="text-sm font-mono font-medium">{savedWorkoutId}</p>
+            </div>
             <div className="space-y-1.5">
               <Label>Garmin Email</Label>
               <Input type="email" placeholder="email@example.com" value={username} onChange={e => setUsername(e.target.value)} disabled={loading} />
@@ -2044,7 +2036,7 @@ function ScheduleToGarminButton({ planId, savedWorkoutId }: { planId: number; sa
             <Button
               className="w-full"
               onClick={handleSchedule}
-              disabled={loading || !username || !password || !effectiveWorkoutId || !scheduleDate}
+              disabled={loading || !username || !password || !scheduleDate}
             >
               {loading ? "Scheduling…" : "Schedule to Calendar"}
             </Button>
