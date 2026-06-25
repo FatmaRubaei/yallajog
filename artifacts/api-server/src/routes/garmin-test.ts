@@ -682,6 +682,135 @@ router.post("/garmin-test/compare-with-date", async (req, res) => {
   }
 });
 
+// ── Push a workout cloned from a manually-created one (top-level fields preserved) ──
+// Strategy: fetch an existing non-YallaJog running workout, keep ALL its top-level
+// fields (subSportType, consumer, shared, etc.), replace only name/steps with ours.
+// If this opens on mobile → the issue is in our top-level fields.
+// If this also fails    → the issue is in our step structure.
+router.post("/garmin-test/push-cloned-template", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    // 1. Find a non-YallaJog running workout to use as template
+    const allWorkouts: any[] = await (gc as any).getWorkouts(0, 100);
+    const template = allWorkouts.find((w: any) =>
+      w.sportType?.sportTypeKey === "running" &&
+      typeof w.workoutName === "string" &&
+      !w.workoutName.toLowerCase().startsWith("yallajog") &&
+      !w.workoutName.toLowerCase().startsWith("libratest") &&
+      !w.workoutName.toLowerCase().startsWith("libratest")
+    );
+    if (!template) {
+      return res.status(404).json({ error: "No non-YallaJog running workout found to use as template. Create one manually in Garmin Connect first." });
+    }
+
+    // 2. Fetch its full detail
+    const templateDetail = await (gc as any).getWorkoutDetail({ workoutId: template.workoutId });
+    req.log.info({ templateWorkoutId: template.workoutId, templateName: template.workoutName }, "push-cloned-template: using template");
+
+    // 3. Build our minimal 3-step workout
+    const today = new Date().toISOString().slice(0, 10);
+    const ourSteps = [
+      makeStep({ stepOrder: 1, description: "Warm up",
+        stepType: { stepTypeId: 1, stepTypeKey: "warmup", displayOrder: 1 },
+        ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
+      makeStep({ stepOrder: 2, description: "Run",
+        stepType: { stepTypeId: 3, stepTypeKey: "interval", displayOrder: 3 },
+        ...timeCondition(20), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
+      makeStep({ stepOrder: 3, description: "Cool down",
+        stepType: { stepTypeId: 2, stepTypeKey: "cool_down", displayOrder: 2 },
+        ...timeCondition(10), targetType: noTarget, targetValueOne: null, targetValueTwo: null }),
+    ];
+
+    // 4. Clone the template but replace name, description, and steps
+    const cloned = {
+      ...templateDetail,
+      workoutName: `YallaJog Cloned – ${today}`,
+      description: "YallaJog template-cloned test",
+      workoutSegments: [{
+        ...(templateDetail.workoutSegments?.[0] ?? {}),
+        workoutSteps: ourSteps,
+        estimatedDurationInSecs:   1800,
+        estimatedDistanceInMeters: null,
+      }],
+      estimatedDurationInSecs:   1800,
+      estimatedDistanceInMeters: null,
+    };
+
+    // 5. Push (addWorkout strips workoutId/ownerId/createdDate/updatedDate/author)
+    req.log.info({ payload: JSON.stringify(cloned) }, "push-cloned-template payload");
+    const result = await (gc as any).addWorkout(cloned);
+    const workoutId = result?.workoutId ?? result?.workout?.workoutId ?? result?.data?.workoutId ?? null;
+
+    return res.json({
+      success: true,
+      workoutId,
+      workoutName: result?.workoutName ?? cloned.workoutName,
+      templateUsed: { workoutId: template.workoutId, workoutName: template.workoutName },
+      templateTopLevelFields: Object.keys(templateDetail).filter(k => !["workoutSegments","workoutId","ownerId","createdDate","updatedDate","author"].includes(k)),
+      note: "Check Garmin Connect mobile → Training → Workouts. If this opens, the fix is to copy top-level fields from the template. If it also fails, the issue is in the step structure.",
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "push-cloned-template failed");
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
+// ── Push our minimal workout then immediately fetch what Garmin stored ─────────
+// Reveals exactly which fields Garmin accepts/ignores/transforms.
+router.post("/garmin-test/push-and-fetch", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const submitted = buildMinimalTestWorkout();
+    req.log.info({ payload: JSON.stringify(submitted) }, "push-and-fetch: submitting");
+    const createResult = await (gc as any).addWorkout(submitted);
+    const workoutId = createResult?.workoutId ?? createResult?.workout?.workoutId ?? createResult?.data?.workoutId ?? null;
+
+    const stored = workoutId ? await (gc as any).getWorkoutDetail({ workoutId }) : null;
+
+    // Flat diff between what we submitted (top-level) and what Garmin stored
+    const submittedKeys = Object.keys(submitted).filter(k => k !== "workoutSegments");
+    const diffFields: Record<string, { submitted: any; stored: any }> = {};
+    for (const k of submittedKeys) {
+      const s = (submitted as any)[k];
+      const g = stored?.[k];
+      if (JSON.stringify(s) !== JSON.stringify(g)) {
+        diffFields[k] = { submitted: s, stored: g };
+      }
+    }
+    // Also show fields Garmin added that we didn't send
+    const garminExtra: Record<string, any> = {};
+    for (const k of Object.keys(stored ?? {})) {
+      if (!submittedKeys.includes(k) && !["workoutSegments","workoutId","ownerId","createdDate","updatedDate"].includes(k)) {
+        garminExtra[k] = stored[k];
+      }
+    }
+
+    return res.json({
+      workoutId,
+      submitted: { ...submitted, workoutSegments: "(omitted for brevity)" },
+      storedTopLevel: Object.fromEntries(Object.entries(stored ?? {}).filter(([k]) => k !== "workoutSegments")),
+      fieldsGarminChanged: diffFields,
+      fieldsGarminAdded: garminExtra,
+      note: "fieldsGarminChanged shows where Garmin ignored/transformed what we sent. fieldsGarminAdded shows what Garmin adds that we don't control.",
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "push-and-fetch failed");
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 router.post("/garmin-test/workout-detail", async (req, res) => {
   const { username, password, workoutId } = req.body as { username?: string; password?: string; workoutId?: number };
   if (!username || !password || !workoutId) return res.status(400).json({ error: "username, password, and workoutId required" });

@@ -145,6 +145,14 @@ export default function GarminTestPage() {
   const [compareError, setCompareError]     = useState<string | null>(null);
   const [compareResult, setCompareResult]   = useState<CompareResult | null>(null);
 
+  const [cloneLoading, setCloneLoading] = useState(false);
+  const [cloneError, setCloneError]     = useState<string | null>(null);
+  const [cloneResult, setCloneResult]   = useState<object | null>(null);
+
+  const [pafLoading, setPafLoading] = useState(false);
+  const [pafError, setPafError]     = useState<string | null>(null);
+  const [pafResult, setPafResult]   = useState<object | null>(null);
+
   const [dateCompareDate, setDateCompareDate]     = useState("2026-06-18");
   const [dateCompareLoading, setDateCompareLoading] = useState(false);
   const [dateCompareError, setDateCompareError]   = useState<string | null>(null);
@@ -199,6 +207,40 @@ export default function GarminTestPage() {
     } catch (err) {
       setListError(err instanceof Error ? err.message : String(err));
     } finally { setListLoading(false); }
+  }
+
+  async function handlePushClonedTemplate() {
+    if (!username || !password) return;
+    setCloneLoading(true); setCloneError(null); setCloneResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/push-cloned-template", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setCloneResult(json);
+    } catch (err) {
+      setCloneError(err instanceof Error ? err.message : String(err));
+    } finally { setCloneLoading(false); }
+  }
+
+  async function handlePushAndFetch() {
+    if (!username || !password) return;
+    setPafLoading(true); setPafError(null); setPafResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/push-and-fetch", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setPafResult(json);
+    } catch (err) {
+      setPafError(err instanceof Error ? err.message : String(err));
+    } finally { setPafLoading(false); }
   }
 
   async function handleAutoCompare() {
@@ -429,6 +471,26 @@ export default function GarminTestPage() {
                 ? <><Loader2 className="h-4 w-4 animate-spin" />Comparing...</>
                 : "Auto-Compare Structures"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={handlePushClonedTemplate}
+              disabled={cloneLoading || !username || !password}
+              className="gap-2 border-green-500 text-green-700 hover:bg-green-50 font-semibold"
+            >
+              {cloneLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Cloning...</>
+                : "Push Cloned Template (copy manually-created workout fields)"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handlePushAndFetch}
+              disabled={pafLoading || !username || !password}
+              className="gap-2 border-teal-400 text-teal-700 hover:bg-teal-50"
+            >
+              {pafLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
+                : "Push + Fetch (see what Garmin actually stored)"}
+            </Button>
           </div>
 
           <div className="border-t pt-4 space-y-2">
@@ -492,6 +554,31 @@ export default function GarminTestPage() {
               If THIS one loads but our workouts don't, the issue is in our step structure.
               If this also shows a loading screen, it's a Garmin app/account limitation.
             </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {cloneError && (
+        <Alert variant="destructive"><AlertDescription>{cloneError}</AlertDescription></Alert>
+      )}
+      {cloneResult && (
+        <Alert className="border-green-200 bg-green-50 dark:bg-green-950/30">
+          <AlertDescription>
+            <p className="font-medium text-green-800">Cloned template pushed!</p>
+            <pre className="text-xs mt-2 whitespace-pre-wrap font-mono overflow-auto max-h-40">{JSON.stringify(cloneResult, null, 2)}</pre>
+            <p className="text-xs mt-2 text-muted-foreground">Open Garmin Connect mobile → Training → Workouts and tap this workout. If it opens — the fix is copying the template's top-level fields. If it also fails — the issue is in the step structure.</p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {pafError && (
+        <Alert variant="destructive"><AlertDescription>{pafError}</AlertDescription></Alert>
+      )}
+      {pafResult && (
+        <Alert className="border-teal-200 bg-teal-50 dark:bg-teal-950/30">
+          <AlertDescription>
+            <p className="font-medium text-teal-800">Push + Fetch result — what Garmin actually stored:</p>
+            <pre className="text-xs mt-2 whitespace-pre-wrap font-mono overflow-auto max-h-64">{JSON.stringify(pafResult, null, 2)}</pre>
           </AlertDescription>
         </Alert>
       )}
