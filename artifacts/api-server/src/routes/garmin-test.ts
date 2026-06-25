@@ -773,11 +773,16 @@ router.post("/garmin-test/push-stripped", async (req, res) => {
     req.log.info({ payload: JSON.stringify(workout) }, "push-stripped payload");
     const result = await (gc as any).addWorkout(workout);
     const workoutId = result?.workoutId ?? result?.workout?.workoutId ?? result?.data?.workoutId ?? null;
+    // Schedule to today so it appears in Calendar view (library view has known issues with API-pushed workouts)
+    const today = new Date().toISOString().slice(0, 10);
+    const schedule = workoutId ? await scheduleWorkout(gc, workoutId, today, req.log) : { scheduled: false };
     return res.json({
       success: true,
       workoutId,
       workoutName: result?.workoutName ?? workout.workoutName,
-      note: "Stripped workout uses NO strokeType, NO equipmentType, minimal field set matching RunningTemplate. If this opens on mobile, the fix is to remove those extra null fields from all workouts.",
+      scheduled: (schedule as any).scheduled,
+      scheduledDate: today,
+      note: "Workout scheduled to TODAY. Open Garmin Connect mobile → Calendar → tap today's date → tap the workout. Library view may have a Garmin bug for API-pushed workouts; Calendar view should work.",
     });
   } catch (err: any) {
     req.log.error({ err: err?.message }, "push-stripped failed");

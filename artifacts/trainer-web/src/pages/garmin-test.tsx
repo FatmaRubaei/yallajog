@@ -597,7 +597,7 @@ export default function GarminTestPage() {
           <AlertDescription>
             <p className="font-medium text-yellow-800">Stripped workout pushed (no strokeType/equipmentType)!</p>
             <pre className="text-xs mt-2 whitespace-pre-wrap font-mono overflow-auto max-h-40">{JSON.stringify(strippedResult, null, 2)}</pre>
-            <p className="text-xs mt-2 text-muted-foreground">Open Garmin Connect mobile → Training → Workouts and tap "YallaJog Stripped". If it opens — removing strokeType/equipmentType is the fix. If it also shows loading — the issue is elsewhere in step structure.</p>
+            <p className="text-xs mt-2 text-muted-foreground font-semibold text-yellow-700">This workout was SCHEDULED to today. Open Garmin Connect mobile → Calendar → tap today → tap the workout. Do NOT open from Training → Workouts (library view has a known Garmin bug for API-pushed workouts).</p>
           </AlertDescription>
         </Alert>
       )}
