@@ -209,6 +209,27 @@ export default function GarminTestPage() {
     } finally { setListLoading(false); }
   }
 
+  const [strippedLoading, setStrippedLoading] = useState(false);
+  const [strippedError, setStrippedError]     = useState<string | null>(null);
+  const [strippedResult, setStrippedResult]   = useState<object | null>(null);
+
+  async function handlePushStripped() {
+    if (!username || !password) return;
+    setStrippedLoading(true); setStrippedError(null); setStrippedResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/push-stripped", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setStrippedResult(json);
+    } catch (err) {
+      setStrippedError(err instanceof Error ? err.message : String(err));
+    } finally { setStrippedLoading(false); }
+  }
+
   async function handlePushClonedTemplate() {
     if (!username || !password) return;
     setCloneLoading(true); setCloneError(null); setCloneResult(null);
@@ -473,6 +494,16 @@ export default function GarminTestPage() {
             </Button>
             <Button
               variant="outline"
+              onClick={handlePushStripped}
+              disabled={strippedLoading || !username || !password}
+              className="gap-2 border-yellow-500 text-yellow-700 hover:bg-yellow-50 font-semibold"
+            >
+              {strippedLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
+                : "Push Stripped (no strokeType/equipmentType — mobile test)"}
+            </Button>
+            <Button
+              variant="outline"
               onClick={handlePushClonedTemplate}
               disabled={cloneLoading || !username || !password}
               className="gap-2 border-green-500 text-green-700 hover:bg-green-50 font-semibold"
@@ -554,6 +585,19 @@ export default function GarminTestPage() {
               If THIS one loads but our workouts don't, the issue is in our step structure.
               If this also shows a loading screen, it's a Garmin app/account limitation.
             </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {strippedError && (
+        <Alert variant="destructive"><AlertDescription>{strippedError}</AlertDescription></Alert>
+      )}
+      {strippedResult && (
+        <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/30">
+          <AlertDescription>
+            <p className="font-medium text-yellow-800">Stripped workout pushed (no strokeType/equipmentType)!</p>
+            <pre className="text-xs mt-2 whitespace-pre-wrap font-mono overflow-auto max-h-40">{JSON.stringify(strippedResult, null, 2)}</pre>
+            <p className="text-xs mt-2 text-muted-foreground">Open Garmin Connect mobile → Training → Workouts and tap "YallaJog Stripped". If it opens — removing strokeType/equipmentType is the fix. If it also shows loading — the issue is elsewhere in step structure.</p>
           </AlertDescription>
         </Alert>
       )}

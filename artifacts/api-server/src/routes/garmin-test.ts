@@ -682,6 +682,109 @@ router.post("/garmin-test/compare-with-date", async (req, res) => {
   }
 });
 
+// ── STRIPPED step builder — matches RunningTemplate exactly (no swimming fields, minimal objects) ──
+// RunningTemplate (addRunningWorkout) does NOT send strokeType, equipmentType,
+// secondaryTarget*, targetValueUnit, weightValue, etc.  Our makeStep sends all of
+// these with null values. If the mobile app does an enum lookup on strokeTypeKey:null
+// or equipmentTypeKey:null it will crash silently (loading screen forever).
+function makeStrippedStep(fields: {
+  stepOrder:    number;
+  description:  string | null;
+  stepType:     { stepTypeId: number; stepTypeKey: string };
+  endCondition: object;
+  endConditionValue: number | null;
+  preferredEndConditionUnit: object;
+  targetType:     { workoutTargetTypeId: number; workoutTargetTypeKey: string };
+  targetValueOne: number | null;
+  targetValueTwo: number | null;
+}) {
+  return {
+    type:                      "ExecutableStepDTO",
+    stepId:                    null,
+    stepOrder:                 fields.stepOrder,
+    childStepId:               null,
+    description:               fields.description,
+    stepType:                  fields.stepType,
+    endCondition:              fields.endCondition,
+    preferredEndConditionUnit: fields.preferredEndConditionUnit,
+    endConditionValue:         fields.endConditionValue,
+    endConditionCompare:       null,
+    endConditionZone:          null,
+    targetType:                fields.targetType,
+    targetValueOne:            fields.targetValueOne,
+    targetValueTwo:            fields.targetValueTwo,
+    zoneNumber:                null,
+    // Deliberately omit: strokeType, equipmentType, secondaryTarget*,
+    // targetValueUnit, category, exerciseName, weightValue, weightUnit
+  };
+}
+
+function buildStrippedWorkout() {
+  const today = new Date().toISOString().slice(0, 10);
+  const stripped = (fields: Parameters<typeof makeStrippedStep>[0]) => makeStrippedStep(fields);
+  const noT = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target" };
+  const steps = [
+    stripped({ stepOrder: 1, description: "Warm up",
+      stepType: { stepTypeId: 1, stepTypeKey: "warmup" },
+      endCondition: { conditionTypeKey: "time", conditionTypeId: 2 },
+      endConditionValue: 600,
+      preferredEndConditionUnit: { unitKey: "second" },
+      targetType: noT, targetValueOne: null, targetValueTwo: null }),
+    stripped({ stepOrder: 2, description: "Run",
+      stepType: { stepTypeId: 3, stepTypeKey: "interval" },
+      endCondition: { conditionTypeKey: "time", conditionTypeId: 2 },
+      endConditionValue: 1200,
+      preferredEndConditionUnit: { unitKey: "second" },
+      targetType: noT, targetValueOne: null, targetValueTwo: null }),
+    stripped({ stepOrder: 3, description: "Cool down",
+      stepType: { stepTypeId: 2, stepTypeKey: "cool_down" },
+      endCondition: { conditionTypeKey: "time", conditionTypeId: 2 },
+      endConditionValue: 600,
+      preferredEndConditionUnit: { unitKey: "second" },
+      targetType: noT, targetValueOne: null, targetValueTwo: null }),
+  ];
+  return {
+    description:               "YallaJog stripped test",
+    sportType,
+    subSportType:              "GENERIC",
+    workoutProvider:           "null",
+    workoutSourceId:           "null",
+    workoutName:               `YallaJog Stripped – ${today}`,
+    estimatedDurationInSecs:   2400,
+    estimatedDistanceInMeters: null,
+    workoutSegments: [{
+      segmentOrder: 1,
+      sportType,
+      workoutSteps: steps,
+    }],
+  };
+}
+
+router.post("/garmin-test/push-stripped", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const workout = buildStrippedWorkout();
+    req.log.info({ payload: JSON.stringify(workout) }, "push-stripped payload");
+    const result = await (gc as any).addWorkout(workout);
+    const workoutId = result?.workoutId ?? result?.workout?.workoutId ?? result?.data?.workoutId ?? null;
+    return res.json({
+      success: true,
+      workoutId,
+      workoutName: result?.workoutName ?? workout.workoutName,
+      note: "Stripped workout uses NO strokeType, NO equipmentType, minimal field set matching RunningTemplate. If this opens on mobile, the fix is to remove those extra null fields from all workouts.",
+    });
+  } catch (err: any) {
+    req.log.error({ err: err?.message }, "push-stripped failed");
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 // ── Push a workout cloned from a manually-created one (top-level fields preserved) ──
 // Strategy: fetch an existing non-YallaJog running workout, keep ALL its top-level
 // fields (subSportType, consumer, shared, etc.), replace only name/steps with ours.
