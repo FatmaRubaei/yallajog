@@ -760,6 +760,82 @@ function buildStrippedWorkout() {
   };
 }
 
+// lap.button workout: the working manually-created workout uses this end condition
+// instead of "time". Tests whether "time" end condition is what breaks mobile.
+function buildLapButtonWorkout() {
+  const today = new Date().toISOString().slice(0, 10);
+  const sportType = { sportTypeId: 1, sportTypeKey: "running" };
+  const noT = { workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target" };
+  const lapBtn = { conditionTypeId: 1, conditionTypeKey: "lap.button" };
+
+  const step = (stepOrder: number, description: string, stepTypeId: number, stepTypeKey: string) => ({
+    type:                      "ExecutableStepDTO",
+    stepId:                    null,
+    stepOrder,
+    childStepId:               null,
+    description,
+    stepType:                  { stepTypeId, stepTypeKey },
+    endCondition:              lapBtn,
+    preferredEndConditionUnit: null,
+    endConditionValue:         null,
+    endConditionCompare:       null,
+    endConditionZone:          null,
+    targetType:                noT,
+    targetValueOne:            null,
+    targetValueTwo:            null,
+    zoneNumber:                null,
+  });
+
+  return {
+    description:               "YallaJog lap-button test",
+    sportType,
+    subSportType:              "GENERIC",
+    workoutProvider:           "null",
+    workoutSourceId:           "null",
+    workoutName:               `YallaJog LapBtn – ${today}`,
+    estimatedDurationInSecs:   2400,
+    estimatedDistanceInMeters: null,
+    workoutSegments: [{
+      segmentOrder: 1,
+      sportType,
+      workoutSteps: [
+        step(1, "Warm up", 1, "warmup"),
+        step(2, "Run", 3, "interval"),
+        step(3, "Cool down", 2, "cool_down"),
+      ],
+    }],
+  };
+}
+
+router.post("/garmin-test/push-lap-button", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const workout = buildLapButtonWorkout();
+    req.log.info({ payload: JSON.stringify(workout) }, "push-lap-button payload");
+    const result = await (gc as any).addWorkout(workout);
+    const workoutId = result?.workoutId ?? result?.workout?.workoutId ?? result?.data?.workoutId ?? null;
+    const today = new Date().toISOString().slice(0, 10);
+    const schedule = workoutId ? await scheduleWorkout(gc, workoutId, today, req.log) : { scheduled: false };
+    return res.json({
+      success: true,
+      workoutId,
+      workoutName: result?.workoutName ?? workout.workoutName,
+      scheduled: (schedule as any).scheduled,
+      scheduledDate: today,
+      note: "lap.button workout: no time/distance — runner taps lap to advance each step. Open Garmin Connect mobile → Calendar → today. If THIS opens but stripped (time) does not, the fix is to switch all workouts from time conditions to lap.button.",
+    });
+  } catch (err: any) {
+    req.log.error({ err: err?.message }, "push-lap-button failed");
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 router.post("/garmin-test/push-stripped", async (req, res) => {
   const { username, password } = req.body as { username?: string; password?: string };
   if (!username || !password) return res.status(400).json({ error: "username and password required" });

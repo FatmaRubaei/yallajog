@@ -209,6 +209,10 @@ export default function GarminTestPage() {
     } finally { setListLoading(false); }
   }
 
+  const [lapBtnLoading, setLapBtnLoading] = useState(false);
+  const [lapBtnError, setLapBtnError]     = useState<string | null>(null);
+  const [lapBtnResult, setLapBtnResult]   = useState<object | null>(null);
+
   const [strippedLoading, setStrippedLoading] = useState(false);
   const [strippedError, setStrippedError]     = useState<string | null>(null);
   const [strippedResult, setStrippedResult]   = useState<object | null>(null);
@@ -217,6 +221,23 @@ export default function GarminTestPage() {
   const [updateExistingLoading, setUpdateExistingLoading] = useState(false);
   const [updateExistingError, setUpdateExistingError]   = useState<string | null>(null);
   const [updateExistingResult, setUpdateExistingResult] = useState<object | null>(null);
+
+  async function handlePushLapButton() {
+    if (!username || !password) return;
+    setLapBtnLoading(true); setLapBtnError(null); setLapBtnResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/push-lap-button", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setLapBtnResult(json);
+    } catch (err) {
+      setLapBtnError(err instanceof Error ? err.message : String(err));
+    } finally { setLapBtnLoading(false); }
+  }
 
   async function handlePushStripped() {
     if (!username || !password) return;
@@ -516,6 +537,16 @@ export default function GarminTestPage() {
             </Button>
             <Button
               variant="outline"
+              onClick={handlePushLapButton}
+              disabled={lapBtnLoading || !username || !password}
+              className="gap-2 bg-red-600 text-white hover:bg-red-700 font-bold border-red-700"
+            >
+              {lapBtnLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
+                : "PUSH LAP.BUTTON (key test — matches working workout structure)"}
+            </Button>
+            <Button
+              variant="outline"
               onClick={handlePushStripped}
               disabled={strippedLoading || !username || !password}
               className="gap-2 border-yellow-500 text-yellow-700 hover:bg-yellow-50 font-semibold"
@@ -631,6 +662,19 @@ export default function GarminTestPage() {
               If THIS one loads but our workouts don't, the issue is in our step structure.
               If this also shows a loading screen, it's a Garmin app/account limitation.
             </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {lapBtnError && (
+        <Alert variant="destructive"><AlertDescription>{lapBtnError}</AlertDescription></Alert>
+      )}
+      {lapBtnResult && (
+        <Alert className="border-red-600 bg-red-50 dark:bg-red-950/30">
+          <AlertDescription>
+            <p className="font-bold text-red-900">LAP.BUTTON workout pushed + scheduled to today!</p>
+            <pre className="text-xs mt-2 whitespace-pre-wrap font-mono overflow-auto max-h-40">{JSON.stringify(lapBtnResult, null, 2)}</pre>
+            <p className="text-xs mt-2 font-bold text-red-800">Open Garmin Connect mobile → Calendar → today → tap "YallaJog LapBtn". If this opens but stripped (time) doesn't, the fix is switching all workouts from time to lap.button end conditions.</p>
           </AlertDescription>
         </Alert>
       )}
