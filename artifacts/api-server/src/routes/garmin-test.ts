@@ -540,6 +540,137 @@ router.post("/garmin-test/auto-compare", async (req, res) => {
   }
 });
 
+// ── Deep compare: find workout by date and diff every field vs latest YallaJog ─
+router.post("/garmin-test/compare-with-date", async (req, res) => {
+  const { username, password, targetDate } = req.body as {
+    username?: string; password?: string; targetDate?: string;
+  };
+  if (!username || !password || !targetDate)
+    return res.status(400).json({ error: "username, password, targetDate (YYYY-MM-DD) required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const allWorkouts: any[] = await (gc as any).getWorkouts(0, 200);
+    req.log.info({ count: allWorkouts.length }, "compare-with-date: all workouts fetched");
+
+    // Find a workout created on or near the target date (check createdDate prefix)
+    const datePrefix = targetDate.slice(0, 10);
+    const targetWorkout = allWorkouts.find((w: any) =>
+      typeof w.createdDate === "string" && w.createdDate.startsWith(datePrefix)
+    );
+    // Fallback: try updatedDate
+    const targetWorkout2 = targetWorkout ?? allWorkouts.find((w: any) =>
+      typeof w.updatedDate === "string" && w.updatedDate.startsWith(datePrefix)
+    );
+    // Find most recent YallaJog workout
+    const yallaJogWorkout = allWorkouts.find((w: any) =>
+      typeof w.workoutName === "string" && w.workoutName.toLowerCase().startsWith("yallajog")
+    );
+
+    if (!targetWorkout2) {
+      return res.status(404).json({
+        error: `No workout found with createdDate/updatedDate starting with ${datePrefix}`,
+        allWorkouts: allWorkouts.map((w: any) => ({
+          workoutId: w.workoutId,
+          workoutName: w.workoutName,
+          createdDate: w.createdDate,
+          updatedDate: w.updatedDate,
+        })),
+      });
+    }
+
+    // Fetch both details in parallel
+    const [targetDetail, yallaDetail] = await Promise.allSettled([
+      (gc as any).getWorkoutDetail({ workoutId: targetWorkout2.workoutId }),
+      yallaJogWorkout ? (gc as any).getWorkoutDetail({ workoutId: yallaJogWorkout.workoutId }) : Promise.resolve(null),
+    ]);
+
+    const targetData = targetDetail.status === "fulfilled" ? targetDetail.value : null;
+    const yallaData  = yallaDetail.status  === "fulfilled" ? yallaDetail.value  : null;
+
+    // ── Recursive flat diff ───────────────────────────────────────────────────
+    function flatKeys(obj: any, prefix = ""): Record<string, any> {
+      const result: Record<string, any> = {};
+      if (obj === null || obj === undefined) return result;
+      for (const [k, v] of Object.entries(obj)) {
+        const fullKey = prefix ? `${prefix}.${k}` : k;
+        if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+          Object.assign(result, flatKeys(v, fullKey));
+        } else {
+          result[fullKey] = v;
+        }
+      }
+      return result;
+    }
+
+    // Compare top-level (excluding deep nested, timestamps, IDs)
+    const ignoreTopLevel = new Set(["workoutId", "ownerId", "createdDate", "updatedDate", "author", "workoutSegments"]);
+    const tFlat  = flatKeys(targetData);
+    const yFlat  = flatKeys(yallaData);
+    const allTopKeys = Array.from(new Set([...Object.keys(tFlat), ...Object.keys(yFlat)]))
+      .filter(k => !ignoreTopLevel.has(k.split(".")[0]) && !k.startsWith("workoutSegments"))
+      .sort();
+    const topDiff = allTopKeys
+      .filter(k => JSON.stringify(tFlat[k]) !== JSON.stringify(yFlat[k]))
+      .map(k => ({ key: k, working: tFlat[k] ?? "(missing)", yallajog: yFlat[k] ?? "(missing)" }));
+
+    // Compare steps per segment
+    const tSteps: any[] = targetData?.workoutSegments?.[0]?.workoutSteps ?? [];
+    const ySteps: any[] = yallaData?.workoutSegments?.[0]?.workoutSteps ?? [];
+    const stepComparisons: any[] = [];
+    const maxSteps = Math.max(tSteps.length, ySteps.length);
+    for (let i = 0; i < maxSteps; i++) {
+      const tStep = tSteps[i] ?? null;
+      const yStep = ySteps[i] ?? null;
+      if (!tStep || !yStep) {
+        stepComparisons.push({ stepIndex: i + 1, note: !tStep ? "only in YallaJog" : "only in working workout", diff: [] });
+        continue;
+      }
+      const tF = flatKeys(tStep);
+      const yF = flatKeys(yStep);
+      const keys = Array.from(new Set([...Object.keys(tF), ...Object.keys(yF)])).filter(k => k !== "stepId").sort();
+      const diff = keys
+        .filter(k => JSON.stringify(tF[k]) !== JSON.stringify(yF[k]))
+        .map(k => ({ key: k, working: tF[k] ?? "(missing)", yallajog: yF[k] ?? "(missing)" }));
+      stepComparisons.push({ stepIndex: i + 1, diff });
+    }
+
+    return res.json({
+      working: {
+        workoutId:   targetWorkout2.workoutId,
+        workoutName: targetWorkout2.workoutName,
+        createdDate: targetWorkout2.createdDate,
+        detail:      targetData,
+      },
+      yallajog: {
+        workoutId:   yallaJogWorkout?.workoutId ?? null,
+        workoutName: yallaJogWorkout?.workoutName ?? null,
+        detail:      yallaData,
+      },
+      topLevelDiff: topDiff,
+      stepDiffs:    stepComparisons,
+      summary: {
+        topLevelDiffCount: topDiff.length,
+        stepCount: { working: tSteps.length, yallajog: ySteps.length },
+        stepTypes: {
+          working:  tSteps.map((s: any) => s.stepType?.stepTypeKey ?? s.type),
+          yallajog: ySteps.map((s: any) => s.stepType?.stepTypeKey ?? s.type),
+        },
+        endConditions: {
+          working:  tSteps.map((s: any) => s.endCondition?.conditionTypeKey),
+          yallajog: ySteps.map((s: any) => s.endCondition?.conditionTypeKey),
+        },
+      },
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "compare-with-date failed");
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 router.post("/garmin-test/workout-detail", async (req, res) => {
   const { username, password, workoutId } = req.body as { username?: string; password?: string; workoutId?: number };
   if (!username || !password || !workoutId) return res.status(400).json({ error: "username, password, and workoutId required" });

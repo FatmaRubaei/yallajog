@@ -73,6 +73,22 @@ interface CompareResult {
   note: string;
 }
 
+interface DateDiffEntry { key: string; working: unknown; yallajog: unknown; }
+interface DateStepDiff  { stepIndex: number; diff: DateDiffEntry[]; note?: string; }
+interface DateCompareSummary {
+  topLevelDiffCount: number;
+  stepCount: { working: number; yallajog: number };
+  stepTypes: { working: string[]; yallajog: string[] };
+  endConditions: { working: string[]; yallajog: string[] };
+}
+interface DateCompareResult {
+  working:      { workoutId: number; workoutName: string; createdDate: string; detail: object | null };
+  yallajog:     { workoutId: number | null; workoutName: string | null; detail: object | null };
+  topLevelDiff: DateDiffEntry[];
+  stepDiffs:    DateStepDiff[];
+  summary:      DateCompareSummary;
+}
+
 function fmtDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -128,6 +144,11 @@ export default function GarminTestPage() {
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError]     = useState<string | null>(null);
   const [compareResult, setCompareResult]   = useState<CompareResult | null>(null);
+
+  const [dateCompareDate, setDateCompareDate]     = useState("2026-06-18");
+  const [dateCompareLoading, setDateCompareLoading] = useState(false);
+  const [dateCompareError, setDateCompareError]   = useState<string | null>(null);
+  const [dateCompareResult, setDateCompareResult] = useState<DateCompareResult | null>(null);
 
   async function handlePushSimple() {
     if (!username || !password) return;
@@ -195,6 +216,23 @@ export default function GarminTestPage() {
     } catch (err) {
       setCompareError(err instanceof Error ? err.message : String(err));
     } finally { setCompareLoading(false); }
+  }
+
+  async function handleDateCompare() {
+    if (!username || !password || !dateCompareDate.trim()) return;
+    setDateCompareLoading(true); setDateCompareError(null); setDateCompareResult(null);
+    try {
+      const res  = await fetch("/api/garmin-test/compare-with-date", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, targetDate: dateCompareDate.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? String(json));
+      setDateCompareResult(json as DateCompareResult);
+    } catch (err) {
+      setDateCompareError(err instanceof Error ? err.message : String(err));
+    } finally { setDateCompareLoading(false); }
   }
 
   async function handlePushMinimal() {
@@ -394,6 +432,27 @@ export default function GarminTestPage() {
           </div>
 
           <div className="border-t pt-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Deep compare: find workout by creation date and diff every field vs latest YallaJog</p>
+            <div className="flex gap-2 items-center">
+              <Input
+                type="date"
+                value={dateCompareDate}
+                onChange={e => setDateCompareDate(e.target.value)}
+                className="max-w-44"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDateCompare}
+                disabled={dateCompareLoading || !username || !password || !dateCompareDate.trim()}
+                className="border-red-300 text-red-700 hover:bg-red-50"
+              >
+                {dateCompareLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Compare with this date"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Fetch workout detail by ID (paste any workoutId from a push result)</p>
             <div className="flex gap-2">
               <Input
@@ -435,6 +494,114 @@ export default function GarminTestPage() {
             </p>
           </AlertDescription>
         </Alert>
+      )}
+
+      {dateCompareError && (
+        <Alert variant="destructive"><AlertDescription>{dateCompareError}</AlertDescription></Alert>
+      )}
+
+      {dateCompareResult && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">
+              Deep Compare: <span className="text-muted-foreground font-normal">{dateCompareResult.working.workoutName}</span> vs <span className="text-muted-foreground font-normal">{dateCompareResult.yallajog.workoutName ?? "YallaJog"}</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Summary */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded border p-2 space-y-1">
+                <p className="font-semibold">Working workout</p>
+                <p className="text-muted-foreground font-mono">{dateCompareResult.working.workoutId}</p>
+                <p>Steps: {dateCompareResult.summary.stepCount.working} — {dateCompareResult.summary.stepTypes.working.join(", ")}</p>
+                <p>Conditions: {dateCompareResult.summary.endConditions.working.join(", ")}</p>
+              </div>
+              <div className="rounded border p-2 space-y-1">
+                <p className="font-semibold">YallaJog workout</p>
+                <p className="text-muted-foreground font-mono">{dateCompareResult.yallajog.workoutId}</p>
+                <p>Steps: {dateCompareResult.summary.stepCount.yallajog} — {dateCompareResult.summary.stepTypes.yallajog.join(", ")}</p>
+                <p>Conditions: {dateCompareResult.summary.endConditions.yallajog.join(", ")}</p>
+              </div>
+            </div>
+
+            {/* Top-level diff */}
+            {dateCompareResult.topLevelDiff.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-1">Top-level field differences ({dateCompareResult.topLevelDiff.length})</p>
+                <div className="rounded border overflow-hidden">
+                  <table className="w-full text-[10px]">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="px-2 py-1 text-left">Field</th>
+                        <th className="px-2 py-1 text-left">Working</th>
+                        <th className="px-2 py-1 text-left">YallaJog</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y font-mono">
+                      {dateCompareResult.topLevelDiff.map(d => (
+                        <tr key={d.key} className="hover:bg-muted/50">
+                          <td className="px-2 py-1 font-sans font-medium">{d.key}</td>
+                          <td className="px-2 py-1">{JSON.stringify(d.working)}</td>
+                          <td className="px-2 py-1">{JSON.stringify(d.yallajog)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            {dateCompareResult.topLevelDiff.length === 0 && (
+              <p className="text-xs text-green-700">Top-level fields identical</p>
+            )}
+
+            {/* Step diffs */}
+            {dateCompareResult.stepDiffs.map(sd => (
+              <div key={sd.stepIndex}>
+                <p className="text-xs font-semibold mb-1">
+                  Step {sd.stepIndex} {sd.note ? `— ${sd.note}` : `— ${sd.diff.length} field(s) differ`}
+                </p>
+                {sd.diff.length > 0 && (
+                  <div className="rounded border overflow-hidden">
+                    <table className="w-full text-[10px]">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="px-2 py-1 text-left">Field</th>
+                          <th className="px-2 py-1 text-left">Working</th>
+                          <th className="px-2 py-1 text-left">YallaJog</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y font-mono">
+                        {sd.diff.map(d => (
+                          <tr key={d.key} className="hover:bg-muted/50">
+                            <td className="px-2 py-1 font-sans font-medium">{d.key}</td>
+                            <td className="px-2 py-1">{JSON.stringify(d.working)}</td>
+                            <td className="px-2 py-1">{JSON.stringify(d.yallajog)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {sd.diff.length === 0 && !sd.note && <p className="text-xs text-green-700">Identical</p>}
+              </div>
+            ))}
+
+            {/* Full JSON side by side */}
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Full JSON comparison</summary>
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <div>
+                  <p className="font-semibold mb-1">Working workout</p>
+                  <pre className="bg-muted p-2 rounded overflow-auto max-h-64 text-[9px]">{JSON.stringify(dateCompareResult.working.detail, null, 2)}</pre>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">YallaJog workout</p>
+                  <pre className="bg-muted p-2 rounded overflow-auto max-h-64 text-[9px]">{JSON.stringify(dateCompareResult.yallajog.detail, null, 2)}</pre>
+                </div>
+              </div>
+            </details>
+          </CardContent>
+        </Card>
       )}
 
       {listError && (
