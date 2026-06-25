@@ -439,6 +439,107 @@ router.post("/garmin-test/push-running-simple", async (req, res) => {
   }
 });
 
+// ── List all workouts in the account ──────────────────────────────────────────
+router.post("/garmin-test/list-workouts", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const workouts = await (gc as any).getWorkouts(0, 100);
+    const list = (Array.isArray(workouts) ? workouts : []).map((w: any) => ({
+      workoutId:   w.workoutId,
+      workoutName: w.workoutName,
+      sportType:   w.sportType?.sportTypeKey,
+      stepCount:   w.workoutSegments?.[0]?.workoutSteps?.length ?? null,
+      createdDate: w.createdDate,
+      updatedDate: w.updatedDate,
+    }));
+    return res.json(list);
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
+// ── Auto-compare: push a library workout, fetch its detail + recent YallaJog detail ───
+router.post("/garmin-test/auto-compare", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    // 1. Get all workouts to find the most recent YallaJog one
+    const allWorkouts: any[] = await (gc as any).getWorkouts(0, 100);
+    const yallaJogWorkout = Array.isArray(allWorkouts)
+      ? allWorkouts.find((w: any) => typeof w.workoutName === "string" && w.workoutName.startsWith("YallaJog"))
+      : null;
+
+    // 2. Push a simple library workout
+    const today = new Date().toISOString().slice(0, 10);
+    const libWorkout = await (gc as any).addRunningWorkout(`LibraryTest – ${today}`, 5000, "auto-compare diagnostic");
+    req.log.info({ libWorkout }, "auto-compare: library workout pushed");
+    const libWorkoutId = libWorkout?.workoutId ?? null;
+
+    // 3. Fetch details for both in parallel
+    const [yallaDetail, libDetail] = await Promise.allSettled([
+      yallaJogWorkout ? (gc as any).getWorkoutDetail({ workoutId: yallaJogWorkout.workoutId }) : Promise.resolve(null),
+      libWorkoutId    ? (gc as any).getWorkoutDetail({ workoutId: libWorkoutId })               : Promise.resolve(null),
+    ]);
+
+    // 4. Compute a flat diff of top-level and step-level keys
+    const yallaData = yallaDetail.status === "fulfilled" ? yallaDetail.value : null;
+    const libData   = libDetail.status   === "fulfilled" ? libDetail.value   : null;
+
+    function flatKeys(obj: any, prefix = ""): Record<string, any> {
+      const result: Record<string, any> = {};
+      for (const [k, v] of Object.entries(obj ?? {})) {
+        const fullKey = prefix ? `${prefix}.${k}` : k;
+        if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+          Object.assign(result, flatKeys(v, fullKey));
+        } else {
+          result[fullKey] = v;
+        }
+      }
+      return result;
+    }
+
+    const yallaStep  = yallaData?.workoutSegments?.[0]?.workoutSteps?.[0] ?? {};
+    const libStep    = libData?.workoutSegments?.[0]?.workoutSteps?.[0]   ?? {};
+    const yallaFlat  = flatKeys(yallaStep);
+    const libFlat    = flatKeys(libStep);
+    const allKeys    = Array.from(new Set([...Object.keys(yallaFlat), ...Object.keys(libFlat)])).sort();
+    const stepDiff   = allKeys
+      .filter(k => JSON.stringify(yallaFlat[k]) !== JSON.stringify(libFlat[k]))
+      .map(k => ({ key: k, yallajog: yallaFlat[k] ?? "(missing)", library: libFlat[k] ?? "(missing)" }));
+
+    return res.json({
+      yallajog: {
+        workoutId:   yallaJogWorkout?.workoutId ?? null,
+        workoutName: yallaJogWorkout?.workoutName ?? null,
+        detail:      yallaData,
+      },
+      library: {
+        workoutId:   libWorkoutId,
+        workoutName: libWorkout?.workoutName ?? `LibraryTest – ${today}`,
+        detail:      libData,
+      },
+      stepDiff,
+      note: stepDiff.length === 0
+        ? "First step structures are identical — the issue is NOT in individual step fields."
+        : `${stepDiff.length} field(s) differ in the first step between YallaJog and library workouts.`,
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "auto-compare failed");
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 router.post("/garmin-test/workout-detail", async (req, res) => {
   const { username, password, workoutId } = req.body as { username?: string; password?: string; workoutId?: number };
   if (!username || !password || !workoutId) return res.status(400).json({ error: "username, password, and workoutId required" });

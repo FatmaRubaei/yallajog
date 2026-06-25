@@ -51,6 +51,28 @@ interface PushResult {
   stepCount: number;
 }
 
+interface WorkoutSummary {
+  workoutId: number;
+  workoutName: string;
+  sportType: string;
+  stepCount: number | null;
+  createdDate: string | null;
+  updatedDate: string | null;
+}
+
+interface StepDiffEntry {
+  key: string;
+  yallajog: unknown;
+  library: unknown;
+}
+
+interface CompareResult {
+  yallajog: { workoutId: number | null; workoutName: string | null; detail: object | null };
+  library:  { workoutId: number | null; workoutName: string | null; detail: object | null };
+  stepDiff: StepDiffEntry[];
+  note: string;
+}
+
 function fmtDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -99,6 +121,14 @@ export default function GarminTestPage() {
   const [detailError, setDetailError]     = useState<string | null>(null);
   const [detailJson, setDetailJson]       = useState<object | null>(null);
 
+  const [listLoading, setListLoading]     = useState(false);
+  const [listError, setListError]         = useState<string | null>(null);
+  const [workoutList, setWorkoutList]     = useState<WorkoutSummary[] | null>(null);
+
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError]     = useState<string | null>(null);
+  const [compareResult, setCompareResult]   = useState<CompareResult | null>(null);
+
   async function handlePushSimple() {
     if (!username || !password) return;
     setSimpleLoading(true); setSimpleError(null); setSimpleResult(null);
@@ -131,6 +161,40 @@ export default function GarminTestPage() {
     } catch (err) {
       setDetailError(err instanceof Error ? err.message : String(err));
     } finally { setDetailLoading(false); }
+  }
+
+  async function handleListWorkouts() {
+    if (!username || !password) return;
+    setListLoading(true); setListError(null); setWorkoutList(null);
+    try {
+      const res  = await fetch("/api/garmin-test/list-workouts", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setWorkoutList(json as WorkoutSummary[]);
+    } catch (err) {
+      setListError(err instanceof Error ? err.message : String(err));
+    } finally { setListLoading(false); }
+  }
+
+  async function handleAutoCompare() {
+    if (!username || !password) return;
+    setCompareLoading(true); setCompareError(null); setCompareResult(null);
+    try {
+      const res  = await fetch("/api/garmin-test/auto-compare", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setCompareResult(json as CompareResult);
+    } catch (err) {
+      setCompareError(err instanceof Error ? err.message : String(err));
+    } finally { setCompareLoading(false); }
   }
 
   async function handlePushMinimal() {
@@ -307,6 +371,26 @@ export default function GarminTestPage() {
                 ? <><Loader2 className="h-4 w-4 animate-spin" />Pushing...</>
                 : "Push Library Simple Run (diagnostic)"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={handleListWorkouts}
+              disabled={listLoading || !username || !password}
+              className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              {listLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Loading...</>
+                : "List All Garmin Workouts"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleAutoCompare}
+              disabled={compareLoading || !username || !password}
+              className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50"
+            >
+              {compareLoading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Comparing...</>
+                : "Auto-Compare Structures"}
+            </Button>
           </div>
 
           <div className="border-t pt-4 space-y-2">
@@ -351,6 +435,94 @@ export default function GarminTestPage() {
             </p>
           </AlertDescription>
         </Alert>
+      )}
+
+      {listError && (
+        <Alert variant="destructive"><AlertDescription>{listError}</AlertDescription></Alert>
+      )}
+
+      {workoutList && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">All Garmin Workouts ({workoutList.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y text-xs max-h-72 overflow-y-auto">
+              {workoutList.length === 0 ? (
+                <p className="text-muted-foreground py-2">No workouts found.</p>
+              ) : workoutList.map(w => (
+                <div key={w.workoutId} className="py-2 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{w.workoutName}</p>
+                    <p className="text-muted-foreground font-mono">{w.workoutId} · {w.sportType} · {w.stepCount ?? "?"} steps</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="text-xs shrink-0"
+                    onClick={() => { setDetailId(String(w.workoutId)); }}>
+                    Copy ID
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {compareError && (
+        <Alert variant="destructive"><AlertDescription>{compareError}</AlertDescription></Alert>
+      )}
+
+      {compareResult && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Auto-Compare Result</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className={compareResult.stepDiff.length === 0 ? "border-green-300 bg-green-50" : "border-yellow-300 bg-yellow-50"}>
+              <AlertDescription className="font-medium">{compareResult.note}</AlertDescription>
+            </Alert>
+
+            {compareResult.stepDiff.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-2">First-step field differences (YallaJog vs Library):</p>
+                <div className="rounded border overflow-hidden">
+                  <table className="w-full text-[10px]">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="px-2 py-1 text-left font-medium">Field</th>
+                        <th className="px-2 py-1 text-left font-medium">YallaJog</th>
+                        <th className="px-2 py-1 text-left font-medium">Library</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y font-mono">
+                      {compareResult.stepDiff.map(d => (
+                        <tr key={d.key} className="hover:bg-muted/50">
+                          <td className="px-2 py-1 font-sans font-medium">{d.key}</td>
+                          <td className="px-2 py-1">{JSON.stringify(d.yallajog)}</td>
+                          <td className="px-2 py-1">{JSON.stringify(d.library)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-semibold mb-1">YallaJog workout full JSON</p>
+                <pre className="bg-muted p-2 rounded overflow-auto max-h-64 text-[9px]">
+                  {JSON.stringify(compareResult.yallajog.detail, null, 2)}
+                </pre>
+              </div>
+              <div>
+                <p className="text-xs font-semibold mb-1">Library workout full JSON</p>
+                <pre className="bg-muted p-2 rounded overflow-auto max-h-64 text-[9px]">
+                  {JSON.stringify(compareResult.library.detail, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {detailError && (
