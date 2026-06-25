@@ -363,6 +363,9 @@ router.post("/week-plans/:id/push-to-garmin", async (req, res) => {
 
   try {
     const { workoutId, workoutName } = await pushWorkout(gc, workout, req.log);
+    if (workoutId) {
+      await db.update(weekPlansTable).set({ garminWorkoutId: String(workoutId) }).where(eq(weekPlansTable.id, id));
+    }
     return res.json({
       success: true, workoutId, workoutName,
       stepCount: (workout.workoutSegments[0].workoutSteps as any[]).length,
@@ -375,11 +378,23 @@ router.post("/week-plans/:id/push-to-garmin", async (req, res) => {
 
 // ── Schedule an already-pushed workout to a specific date ─────────────────────
 router.post("/week-plans/:id/schedule-to-garmin", async (req, res) => {
-  const { username, password, workoutId, date } = req.body as {
-    username?: string; password?: string; workoutId?: number; date?: string;
+  const planId = Number(req.params.id);
+  const { username, password, date } = req.body as {
+    username?: string; password?: string; date?: string;
   };
-  if (!username || !password || !workoutId || !date)
-    return res.status(400).json({ error: "username, password, workoutId, and date are required" });
+  let { workoutId } = req.body as { workoutId?: number };
+
+  if (!username || !password || !date)
+    return res.status(400).json({ error: "username, password, and date are required" });
+
+  // Use the saved workoutId from the plan when not provided in the request
+  if (!workoutId && !isNaN(planId)) {
+    const [plan] = await db.select().from(weekPlansTable).where(eq(weekPlansTable.id, planId));
+    if (plan?.garminWorkoutId) workoutId = Number(plan.garminWorkoutId);
+  }
+
+  if (!workoutId)
+    return res.status(400).json({ error: "No Garmin workout ID found. Push the workout to Garmin first." });
 
   let gc: GarminConnect;
   try { gc = await gcLogin(username, password); }

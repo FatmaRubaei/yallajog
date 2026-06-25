@@ -9,6 +9,7 @@ export const weekPlansTable = pgTable("week_plans", {
   traineeId: integer("trainee_id").notNull().references(() => traineesTable.id, { onDelete: "cascade" }),
   weekStart: date("week_start").notNull(),
   notes: text("notes"),
+  garminWorkoutId: text("garmin_workout_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
