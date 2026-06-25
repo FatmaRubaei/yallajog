@@ -1790,17 +1790,24 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ workoutId: string; workoutName: string; stepCount: number } | null>(null);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushResult, setPushResult] = useState<{ workoutId: string; workoutName: string; stepCount: number } | null>(null);
+  const [scheduleDate, setScheduleDate] = useState(weekStart);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleResult, setScheduleResult] = useState<{ date: string } | null>(null);
 
   function handleClose(v: boolean) {
-    if (!v) { setResult(null); setUsername(""); setPassword(""); }
+    if (!v) {
+      setPushResult(null); setScheduleResult(null);
+      setUsername(""); setPassword("");
+      setScheduleDate(weekStart);
+    }
     setOpen(v);
   }
 
   async function handlePush() {
     if (!username || !password) return;
-    setLoading(true);
+    setPushLoading(true);
     try {
       const res = await fetch(`/api/week-plans/${planId}/push-to-garmin`, {
         method: "POST",
@@ -1810,14 +1817,31 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to push");
-      setResult(data);
+      setPushResult(data);
     } catch (err) {
-      toast({
-        title: err instanceof Error ? err.message : "Failed to push to Garmin",
-        variant: "destructive",
-      });
+      toast({ title: err instanceof Error ? err.message : "Failed to push to Garmin", variant: "destructive" });
     } finally {
-      setLoading(false);
+      setPushLoading(false);
+    }
+  }
+
+  async function handleSchedule() {
+    if (!pushResult?.workoutId || !scheduleDate) return;
+    setScheduleLoading(true);
+    try {
+      const res = await fetch(`/api/week-plans/${planId}/schedule-to-garmin`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, workoutId: Number(pushResult.workoutId), date: scheduleDate }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to schedule");
+      setScheduleResult({ date: scheduleDate });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : "Failed to schedule workout", variant: "destructive" });
+    } finally {
+      setScheduleLoading(false);
     }
   }
 
@@ -1839,35 +1863,12 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
           <DialogTitle>Push to Garmin Connect</DialogTitle>
         </DialogHeader>
 
-        {result ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-900 p-4 space-y-2">
-              <p className="text-sm font-medium text-green-800 dark:text-green-300">Workout pushed successfully</p>
-              <p className="text-sm text-green-700 dark:text-green-400">
-                <strong>{result.workoutName}</strong> — {result.stepCount} steps
-              </p>
-              {result.workoutId && (
-                <p className="text-xs text-green-600 dark:text-green-500">Workout ID: {result.workoutId}</p>
-              )}
-            </div>
-            <div className="rounded-lg border bg-muted/40 p-3 space-y-1.5">
-              <p className="text-xs font-medium">How to find it in Garmin Connect:</p>
-              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                <li>Open <a href="https://connect.garmin.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline dark:text-blue-400">connect.garmin.com</a> and log in</li>
-                <li>Go to <strong>Training</strong> in the top menu</li>
-                <li>Click <strong>Workouts</strong></li>
-                <li>Find <strong>{result.workoutName}</strong> in the list</li>
-                <li>Click it, then tap <strong>Send to Device</strong> to push it to the watch</li>
-              </ol>
-            </div>
-            <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
-              Close
-            </Button>
-          </div>
-        ) : (
+        {!pushResult ? (
+          /* ── Step 1: credentials + push ── */
           <>
             <p className="text-sm text-muted-foreground">
-              Week of <strong>{weekStart}</strong> will be pushed as a structured workout to the Garmin Connect account.
+              Week of <strong>{weekStart}</strong> will be added to the Garmin workout library.
+              You can then schedule it to any date.
             </p>
             <div className="space-y-3 pt-1">
               <div className="space-y-1.5">
@@ -1877,7 +1878,7 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
                   placeholder="email@example.com"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  disabled={loading}
+                  disabled={pushLoading}
                 />
               </div>
               <div className="space-y-1.5">
@@ -1887,15 +1888,58 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  disabled={loading}
+                  disabled={pushLoading}
                   onKeyDown={e => e.key === "Enter" && handlePush()}
                 />
               </div>
-              <Button className="w-full" onClick={handlePush} disabled={loading || !username || !password}>
-                {loading ? "Connecting to Garmin…" : "Push Workout"}
+              <Button className="w-full" onClick={handlePush} disabled={pushLoading || !username || !password}>
+                {pushLoading ? "Connecting to Garmin…" : "Push to Library"}
               </Button>
             </div>
           </>
+        ) : (
+          /* ── Step 2: pushed — now optionally schedule ── */
+          <div className="space-y-4">
+            <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-900 p-3 space-y-1">
+              <p className="text-sm font-medium text-green-800 dark:text-green-300">Added to Garmin library</p>
+              <p className="text-sm text-green-700 dark:text-green-400">
+                <strong>{pushResult.workoutName}</strong> — {pushResult.stepCount} steps
+              </p>
+              <p className="text-xs text-green-600 dark:text-green-500 font-mono">ID: {pushResult.workoutId}</p>
+            </div>
+
+            {scheduleResult ? (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900 p-3 space-y-1">
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Scheduled to {scheduleResult.date}</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  Open Garmin Connect mobile → Calendar → {scheduleResult.date} → tap the workout
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Schedule to calendar (optional)</p>
+                <div className="flex gap-2">
+                  <Input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={e => setScheduleDate(e.target.value)}
+                    disabled={scheduleLoading}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSchedule} disabled={scheduleLoading || !scheduleDate}>
+                    {scheduleLoading ? "Scheduling…" : "Schedule"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Scheduling adds the workout to the Garmin calendar so it appears in the mobile app on that day.
+                </p>
+              </div>
+            )}
+
+            <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
+              Close
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>

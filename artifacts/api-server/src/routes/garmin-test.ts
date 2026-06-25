@@ -363,18 +363,33 @@ router.post("/week-plans/:id/push-to-garmin", async (req, res) => {
 
   try {
     const { workoutId, workoutName } = await pushWorkout(gc, workout, req.log);
-    // Schedule the workout to the week's Monday so mobile opens it from Calendar view
-    const schedule = workoutId ? await scheduleWorkout(gc, workoutId, plan.weekStart, req.log) : { scheduled: false };
     return res.json({
       success: true, workoutId, workoutName,
       stepCount: (workout.workoutSegments[0].workoutSteps as any[]).length,
-      scheduled: schedule.scheduled,
-      scheduleNote: schedule.scheduled
-        ? `Workout scheduled to ${plan.weekStart} — open Garmin Connect mobile → Calendar to see it`
-        : `Scheduled to library only (${(schedule as any).error ?? "schedule step skipped"})`,
+      note: "Workout added to Garmin library. Use the Schedule button to assign it to a calendar date.",
     });
   } catch (err: any) {
     return res.status(500).json({ error: "Failed to push workout: " + (err?.message ?? String(err)) });
+  }
+});
+
+// ── Schedule an already-pushed workout to a specific date ─────────────────────
+router.post("/week-plans/:id/schedule-to-garmin", async (req, res) => {
+  const { username, password, workoutId, date } = req.body as {
+    username?: string; password?: string; workoutId?: number; date?: string;
+  };
+  if (!username || !password || !workoutId || !date)
+    return res.status(400).json({ error: "username, password, workoutId, and date are required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    const result = await scheduleWorkout(gc, Number(workoutId), date, req.log);
+    return res.json({ success: true, scheduled: result.scheduled, date, workoutId });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Failed to schedule: " + (err?.message ?? String(err)) });
   }
 });
 
