@@ -919,6 +919,75 @@ router.post("/garmin-test/push-and-fetch", async (req, res) => {
   }
 });
 
+// ── Update an EXISTING manually-created workout in-place via PUT ──────────────
+// Key test: POST creates new workouts with consumer:null (API auth).
+// PUT on an existing manually-created workout preserves the consumer field
+// that Garmin stamped at creation time (e.g. "GARMIN_CONNECT").
+// If this opens on mobile, the fix is to always overwrite a placeholder workout
+// that the user created manually, rather than creating new ones.
+router.post("/garmin-test/update-existing", async (req, res) => {
+  const { username, password, workoutId } = req.body as { username?: string; password?: string; workoutId?: number };
+  if (!username || !password || !workoutId) return res.status(400).json({ error: "username, password, and workoutId required" });
+
+  let gc: GarminConnect;
+  try { gc = await gcLogin(username, password); }
+  catch (err: any) { return res.status(401).json({ error: "Garmin login failed: " + (err?.message ?? String(err)) }); }
+
+  try {
+    // 1. Fetch the existing workout (preserves consumer/source/etc. from original creation)
+    const existing = await (gc as any).getWorkoutDetail({ workoutId });
+    req.log.info({
+      workoutId,
+      consumer: existing.consumer,
+      workoutProvider: existing.workoutProvider,
+      workoutName: existing.workoutName,
+    }, "update-existing: fetched original workout");
+
+    // 2. Build stripped steps (minimal, matching RunningTemplate format)
+    const stripped = buildStrippedWorkout();
+
+    // 3. Overwrite name and steps, keep ALL other top-level fields exactly as Garmin stored them
+    const today = new Date().toISOString().slice(0, 10);
+    const updated = {
+      ...existing,
+      workoutName: `YallaJog Updated – ${today}`,
+      description: "YallaJog update-existing test (PUT on manually-created workout)",
+      workoutSegments: [{
+        ...(existing.workoutSegments?.[0] ?? {}),
+        workoutSteps: stripped.workoutSegments[0].workoutSteps,
+        estimatedDurationInSecs: 2400,
+        estimatedDistanceInMeters: null,
+      }],
+      estimatedDurationInSecs: 2400,
+      estimatedDistanceInMeters: null,
+    };
+
+    // 4. PUT to existing workout URL (preserves consumer, ownerId, etc.)
+    const putUrl = (gc as any).url.WORKOUT(workoutId);
+    req.log.info({ putUrl, payload: JSON.stringify(updated) }, "update-existing: sending PUT");
+    const result = await (gc as any).client.put(putUrl, updated);
+
+    // 5. Schedule to today
+    const schedule = await scheduleWorkout(gc, workoutId, today, req.log);
+
+    return res.json({
+      success: true,
+      workoutId,
+      consumer: existing.consumer,
+      workoutProvider: existing.workoutProvider,
+      originalName: existing.workoutName,
+      updatedName: updated.workoutName,
+      scheduled: (schedule as any).scheduled,
+      scheduledDate: today,
+      putStatus: result?.status ?? "ok",
+      note: `PUT preserved consumer="${existing.consumer}" from original workout. Open Garmin Connect mobile → Calendar → today → tap "YallaJog Updated". If it opens, consumer field is the fix.`,
+    });
+  } catch (err: any) {
+    req.log.error({ err }, "update-existing failed");
+    return res.status(500).json({ error: "Failed: " + (err?.message ?? String(err)) });
+  }
+});
+
 router.post("/garmin-test/workout-detail", async (req, res) => {
   const { username, password, workoutId } = req.body as { username?: string; password?: string; workoutId?: number };
   if (!username || !password || !workoutId) return res.status(400).json({ error: "username, password, and workoutId required" });

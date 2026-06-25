@@ -213,6 +213,11 @@ export default function GarminTestPage() {
   const [strippedError, setStrippedError]     = useState<string | null>(null);
   const [strippedResult, setStrippedResult]   = useState<object | null>(null);
 
+  const [updateExistingId, setUpdateExistingId]         = useState("");
+  const [updateExistingLoading, setUpdateExistingLoading] = useState(false);
+  const [updateExistingError, setUpdateExistingError]   = useState<string | null>(null);
+  const [updateExistingResult, setUpdateExistingResult] = useState<object | null>(null);
+
   async function handlePushStripped() {
     if (!username || !password) return;
     setStrippedLoading(true); setStrippedError(null); setStrippedResult(null);
@@ -228,6 +233,23 @@ export default function GarminTestPage() {
     } catch (err) {
       setStrippedError(err instanceof Error ? err.message : String(err));
     } finally { setStrippedLoading(false); }
+  }
+
+  async function handleUpdateExisting() {
+    if (!username || !password || !updateExistingId.trim()) return;
+    setUpdateExistingLoading(true); setUpdateExistingError(null); setUpdateExistingResult(null);
+    try {
+      const res = await fetch("/api/garmin-test/update-existing", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, workoutId: Number(updateExistingId.trim()) }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Unknown error");
+      setUpdateExistingResult(json);
+    } catch (err) {
+      setUpdateExistingError(err instanceof Error ? err.message : String(err));
+    } finally { setUpdateExistingLoading(false); }
   }
 
   async function handlePushClonedTemplate() {
@@ -525,6 +547,30 @@ export default function GarminTestPage() {
           </div>
 
           <div className="border-t pt-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              <span className="font-bold text-red-700">KEY TEST:</span> PUT our steps into a manually-created workout (preserves its <code>consumer</code> field).
+              Go to <strong>connect.garmin.com → Training → Workouts</strong>, create any running workout manually, then copy its ID from the browser URL bar (the number at the end).
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Existing workoutId (e.g. 1609993835)"
+                value={updateExistingId}
+                onChange={e => setUpdateExistingId(e.target.value)}
+                className="max-w-64 font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUpdateExisting}
+                disabled={updateExistingLoading || !username || !password || !updateExistingId.trim()}
+                className="border-red-500 text-red-700 hover:bg-red-50 font-semibold"
+              >
+                {updateExistingLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Existing Workout (PUT)"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Deep compare: find workout by creation date and diff every field vs latest YallaJog</p>
             <div className="flex gap-2 items-center">
               <Input
@@ -585,6 +631,19 @@ export default function GarminTestPage() {
               If THIS one loads but our workouts don't, the issue is in our step structure.
               If this also shows a loading screen, it's a Garmin app/account limitation.
             </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {updateExistingError && (
+        <Alert variant="destructive"><AlertDescription>{updateExistingError}</AlertDescription></Alert>
+      )}
+      {updateExistingResult && (
+        <Alert className="border-red-200 bg-red-50 dark:bg-red-950/30">
+          <AlertDescription>
+            <p className="font-medium text-red-800">Update Existing (PUT) result:</p>
+            <pre className="text-xs mt-2 whitespace-pre-wrap font-mono overflow-auto max-h-40">{JSON.stringify(updateExistingResult, null, 2)}</pre>
+            <p className="text-xs mt-2 font-semibold text-red-700">Workout scheduled to today. Open Garmin Connect mobile → Calendar → today → tap "YallaJog Updated". If it opens, consumer field is the fix.</p>
           </AlertDescription>
         </Alert>
       )}
