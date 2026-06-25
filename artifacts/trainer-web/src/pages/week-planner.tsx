@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarDays, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight, Send, Download, Watch } from "lucide-react";
+import { CalendarDays, CalendarPlus, Users, ArrowLeft, Plus, Pencil, Clock, Gauge, Ruler, CheckCircle2, Circle, Trash2, ChevronDown, ChevronRight, Send, Download, Watch } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -1792,7 +1792,7 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
   const [password, setPassword] = useState("");
   const [pushLoading, setPushLoading] = useState(false);
   const [pushResult, setPushResult] = useState<{ workoutId: string; workoutName: string; stepCount: number } | null>(null);
-  const [scheduleDate, setScheduleDate] = useState(weekStart);
+  const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleResult, setScheduleResult] = useState<{ date: string } | null>(null);
 
@@ -1938,6 +1938,104 @@ function PushToGarminButton({ planId, weekStart }: { planId: number; weekStart: 
 
             <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>
               Close
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ScheduleToGarminButton({ planId }: { planId: number }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [workoutId, setWorkoutId] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState<{ date: string } | null>(null);
+
+  function handleClose(v: boolean) {
+    if (!v) { setUsername(""); setPassword(""); setWorkoutId(""); setScheduleDate(""); setDone(null); }
+    setOpen(v);
+  }
+
+  async function handleSchedule() {
+    if (!username || !password || !workoutId || !scheduleDate) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/week-plans/${planId}/schedule-to-garmin`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, workoutId: Number(workoutId), date: scheduleDate }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to schedule");
+      setDone({ date: scheduleDate });
+    } catch (err) {
+      toast({ title: err instanceof Error ? err.message : "Failed to schedule", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 gap-1 text-muted-foreground hover:text-blue-600"
+          title="Schedule Garmin workout to calendar"
+        >
+          <CalendarPlus className="h-3 w-3" />
+          <span className="text-[10px] font-medium leading-none">Schedule</span>
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Schedule to Garmin Calendar</DialogTitle>
+        </DialogHeader>
+        {done ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900 p-3 space-y-1">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Scheduled to {done.date}</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Open Garmin Connect mobile → Calendar → {done.date} → tap the workout
+              </p>
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => handleClose(false)}>Close</Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Schedule an existing Garmin workout (already in your library) to a specific calendar date.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Garmin Email</Label>
+              <Input type="email" placeholder="email@example.com" value={username} onChange={e => setUsername(e.target.value)} disabled={loading} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Garmin Password</Label>
+              <Input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Workout ID</Label>
+              <Input type="number" placeholder="e.g. 123456789" value={workoutId} onChange={e => setWorkoutId(e.target.value)} disabled={loading} />
+              <p className="text-xs text-muted-foreground">The ID shown after pushing a workout to Garmin.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Date</Label>
+              <Input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} disabled={loading} />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleSchedule}
+              disabled={loading || !username || !password || !workoutId || !scheduleDate}
+            >
+              {loading ? "Scheduling…" : "Schedule to Calendar"}
             </Button>
           </div>
         )}
@@ -2119,6 +2217,7 @@ export function TraineeWeekPlanner() {
                       <DownloadFitButton planId={plan.id} weekStart={plan.weekStart} />
                       <DownloadGpxButton planId={plan.id} weekStart={plan.weekStart} />
                       <PushToGarminButton planId={plan.id} weekStart={plan.weekStart} />
+                      <ScheduleToGarminButton planId={plan.id} />
                       <SendFitWhatsAppButton planId={plan.id} weekStart={plan.weekStart} />
                       <SendWeekPlanButton
                         plan={plan}
