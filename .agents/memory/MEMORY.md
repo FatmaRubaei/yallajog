@@ -1,0 +1,1 @@
+- [Garmin lap.button fix](garmin-lap-button.md) — time/distance end conditions cause infinite loading on Garmin Connect mobile; lap.button is the only working condition.

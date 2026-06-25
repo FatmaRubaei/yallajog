@@ -170,23 +170,33 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
     return stepTypeMap.interval;
   }
 
+  // lap.button is the ONLY end condition that opens on Garmin Connect mobile.
+  // time/distance conditions cause an infinite loading screen on mobile.
+  // Duration/distance targets are embedded in the step description text instead,
+  // so the runner sees them on the watch display.
+  const lapButton = {
+    endCondition:              { conditionTypeKey: "lap.button", conditionTypeId: 1, displayOrder: 1, displayable: true },
+    endConditionValue:         null,
+    preferredEndConditionUnit: { unitId: 2, unitKey: "kilometer", factor: 100000 },
+  };
+
   let stepOrder = 1;
   const workoutSteps: object[] = [];
+  let totalDurationSecs = 0;
+  let totalDistanceM = 0;
 
   for (const run of plan.runs ?? []) {
     for (const seg of run.segments ?? []) {
-      let cond: ReturnType<typeof timeCondition> | ReturnType<typeof distanceCondition>;
+      // Embed duration/distance hint in description so it shows on the watch
+      let hint = "";
       if (seg.distanceKm != null && seg.distanceKm > 0) {
-        cond = distanceCondition(seg.distanceKm);
+        hint = ` (${seg.distanceKm} km)`;
+        totalDistanceM += seg.distanceKm * 1000;
       } else if (seg.durationMinutes != null && seg.durationMinutes > 0) {
-        cond = timeCondition(seg.durationMinutes);
-      } else {
-        cond = {
-          endCondition:              { conditionTypeKey: "lap.button", conditionTypeId: 1, displayOrder: 1, displayable: true },
-          endConditionValue:         null,
-          preferredEndConditionUnit: { unitId: 2, unitKey: "kilometer", factor: 100000 },
-        };
+        hint = ` (${seg.durationMinutes} min)`;
+        totalDurationSecs += seg.durationMinutes * 60;
       }
+      const description = (seg.resolvedText + hint).slice(0, 200);
 
       let target = { targetType: noTarget, targetValueOne: null as number | null, targetValueTwo: null as number | null };
       if (seg.pace) {
@@ -199,11 +209,11 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
 
       workoutSteps.push(makeStep({
         stepOrder:                 stepOrder++,
-        description:               seg.resolvedText.slice(0, 200),
+        description,
         stepType:                  resolveStepType(seg.resolvedText),
-        endCondition:              cond.endCondition,
-        endConditionValue:         cond.endConditionValue,
-        preferredEndConditionUnit: cond.preferredEndConditionUnit,
+        endCondition:              lapButton.endCondition,
+        endConditionValue:         lapButton.endConditionValue,
+        preferredEndConditionUnit: lapButton.preferredEndConditionUnit,
         targetType:                target.targetType,
         targetValueOne:            target.targetValueOne,
         targetValueTwo:            target.targetValueTwo,
@@ -211,23 +221,21 @@ function buildGarminWorkout(plan: Awaited<ReturnType<typeof buildWeekPlanDetail>
     }
   }
 
-  const est = estimateSteps(workoutSteps as any);
-
   return {
-    description:              `YallaJog training plan for week of ${plan.weekStart}`,
+    description:               `YallaJog training plan for week of ${plan.weekStart}`,
     sportType,
-    subSportType:             "GENERIC",
-    workoutProvider:          "null",
-    workoutSourceId:          "null",
-    workoutName:              `YallaJog – Week of ${plan.weekStart}`,
-    estimatedDurationInSecs:  est.durationSecs  || null,
-    estimatedDistanceInMeters: est.distanceM    || null,
+    subSportType:              "GENERIC",
+    workoutProvider:           "null",
+    workoutSourceId:           "null",
+    workoutName:               `YallaJog – Week of ${plan.weekStart}`,
+    estimatedDurationInSecs:   totalDurationSecs || null,
+    estimatedDistanceInMeters: totalDistanceM    || null,
     workoutSegments: [{
       segmentOrder:              1,
       sportType,
-      avgTrainingSpeed:          est.avgSpeedMps,
-      estimatedDurationInSecs:   est.durationSecs  || null,
-      estimatedDistanceInMeters: est.distanceM     || null,
+      avgTrainingSpeed:          null,
+      estimatedDurationInSecs:   totalDurationSecs || null,
+      estimatedDistanceInMeters: totalDistanceM    || null,
       workoutSteps,
     }],
   };
