@@ -754,6 +754,7 @@ function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; t
   const [canSend, setCanSend] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialLoadDone = useRef(false);
 
   async function fetchMessages() {
     try {
@@ -787,6 +788,10 @@ function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; t
   }, [traineeId]);
 
   useEffect(() => {
+    if (!initialLoadDone.current) {
+      initialLoadDone.current = true;
+      return;
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -1012,7 +1017,9 @@ export default function TraineeProfile() {
         </Card>
 
         {/* Garmin Credentials */}
-        <GarminCredentialsCard trainee={trainee} onSuccess={() => refetchTrainee()} />
+        <div className="col-span-1 md:col-span-2 lg:col-span-3">
+          <GarminCredentialsCard trainee={trainee} onSuccess={() => refetchTrainee()} />
+        </div>
 
       </div>
 
