@@ -53,6 +53,11 @@ import {
   Pencil,
   MessageSquare,
   Send,
+  Watch,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  ShieldX,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -431,6 +436,150 @@ function InfoRow({ label, value, always }: { label: string; value?: string | num
         {hasValue ? String(value) : "—"}
       </span>
     </div>
+  );
+}
+
+function GarminCredentialsCard({ trainee, onSuccess }: { trainee: any; onSuccess: () => void }) {
+  const { toast } = useToast();
+  const mutation = useUpdateTrainee();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ garminEmail: "", garminPassword: "", garminPermission: false });
+  const [showPassword, setShowPassword] = useState(false);
+
+  function startEdit() {
+    setForm({
+      garminEmail: trainee.garminEmail ?? "",
+      garminPassword: trainee.garminPassword ?? "",
+      garminPermission: trainee.garminPermission ?? false,
+    });
+    setShowPassword(false);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    try {
+      await mutation.mutateAsync({
+        id: trainee.id,
+        data: {
+          garminEmail: form.garminEmail.trim() || undefined,
+          garminPassword: form.garminPassword || undefined,
+          garminPermission: form.garminPermission,
+        } as any,
+      });
+      toast({ title: "Garmin credentials saved" });
+      setEditing(false);
+      onSuccess();
+    } catch {
+      toast({ title: "Failed to save", variant: "destructive" });
+    }
+  }
+
+  const hasCredentials = !!trainee.garminEmail;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Watch className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Garmin Connect</CardTitle>
+        </div>
+        <div className="flex items-center gap-2">
+          {hasCredentials && !editing && (
+            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 font-medium">
+              <ShieldCheck className="h-3.5 w-3.5" /> Saved
+            </span>
+          )}
+          {!hasCredentials && !editing && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <ShieldX className="h-3.5 w-3.5" /> Not set
+            </span>
+          )}
+          {!editing && (
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={startEdit}>
+              <Pencil className="h-3 w-3" /> {hasCredentials ? "Edit" : "Add"}
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {!editing ? (
+          <>
+            <InfoRow always label="Garmin Email" value={trainee.garminEmail} />
+            <InfoRow always label="Password" value={trainee.garminPassword ? "••••••••" : null} />
+            <div className="flex items-start justify-between py-2.5 border-b last:border-0">
+              <span className="text-sm text-muted-foreground">Trainer Permission</span>
+              <span className={`text-sm font-medium flex items-center gap-1 ${trainee.garminPermission ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                {trainee.garminPermission
+                  ? <><ShieldCheck className="h-3.5 w-3.5" /> Granted</>
+                  : <><ShieldX className="h-3.5 w-3.5" /> Not granted</>}
+              </span>
+            </div>
+            {!hasCredentials && (
+              <p className="text-xs text-muted-foreground mt-2">
+                No Garmin credentials saved. Ask the trainee to add them, or enter them here.
+              </p>
+            )}
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Garmin Email</Label>
+              <Input
+                type="email"
+                value={form.garminEmail}
+                onChange={(e) => setForm((f) => ({ ...f, garminEmail: e.target.value }))}
+                placeholder="trainee@email.com"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Garmin Password</Label>
+              <div className="flex gap-2">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={form.garminPassword}
+                  onChange={(e) => setForm((f) => ({ ...f, garminPassword: e.target.value }))}
+                  placeholder="Password"
+                  className="h-8 text-sm flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 shrink-0"
+                  onClick={() => setShowPassword((v) => !v)}
+                >
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3">
+              <input
+                type="checkbox"
+                id="garmin-permission"
+                checked={form.garminPermission}
+                onChange={(e) => setForm((f) => ({ ...f, garminPermission: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
+              />
+              <label htmlFor="garmin-permission" className="cursor-pointer">
+                <p className="text-sm font-medium leading-none">Trainee grants permission</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                  The trainee has agreed to allow their trainer to push and schedule workouts to their Garmin account.
+                </p>
+              </label>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" className="h-8 text-xs" onClick={handleSave} disabled={mutation.isPending}>
+                {mutation.isPending ? "Saving..." : "Save"}
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -861,6 +1010,9 @@ export default function TraineeProfile() {
             <InfoRow always label="Health Notes" value={trainee.healthNotes} />
           </CardContent>
         </Card>
+
+        {/* Garmin Credentials */}
+        <GarminCredentialsCard trainee={trainee} onSuccess={() => refetchTrainee()} />
 
       </div>
 
