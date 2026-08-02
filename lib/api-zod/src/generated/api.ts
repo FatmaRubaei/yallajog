@@ -32,7 +32,6 @@ export const ListTraineesResponseItem = zod.object({
   city: zod.string().optional(),
   birthdate: zod.coerce.date().optional(),
   runsPerWeek: zod.number().optional(),
-  maxHr: zod.number().optional(),
   hrZone4: zod.number().optional(),
   hrZone5a: zod.number().optional(),
   hrZone5c: zod.number().optional(),
@@ -50,6 +49,9 @@ export const ListTraineesResponseItem = zod.object({
   medications: zod.string().optional(),
   allergies: zod.string().optional(),
   healthNotes: zod.string().optional(),
+  garminEmail: zod.string().optional(),
+  garminPassword: zod.string().optional(),
+  garminPermission: zod.boolean().optional(),
   balanceDue: zod.number().optional(),
   hasActivityThisWeek: zod.boolean().optional(),
   isPlannedThisWeek: zod.boolean().optional(),
@@ -67,7 +69,6 @@ export const CreateTraineeBody = zod.object({
   city: zod.string().optional(),
   birthdate: zod.coerce.date().optional(),
   runsPerWeek: zod.number().optional(),
-  maxHr: zod.number().optional(),
   hrZone4: zod.number().optional(),
   hrZone5a: zod.number().optional(),
   hrZone5c: zod.number().optional(),
@@ -85,6 +86,9 @@ export const CreateTraineeBody = zod.object({
   medications: zod.string().optional(),
   allergies: zod.string().optional(),
   healthNotes: zod.string().optional(),
+  garminEmail: zod.string().optional(),
+  garminPassword: zod.string().optional(),
+  garminPermission: zod.boolean().optional(),
 });
 
 /**
@@ -102,7 +106,6 @@ export const GetTraineeResponse = zod.object({
   city: zod.string().optional(),
   birthdate: zod.coerce.date().optional(),
   runsPerWeek: zod.number().optional(),
-  maxHr: zod.number().optional(),
   hrZone4: zod.number().optional(),
   hrZone5a: zod.number().optional(),
   hrZone5c: zod.number().optional(),
@@ -120,6 +123,9 @@ export const GetTraineeResponse = zod.object({
   medications: zod.string().optional(),
   allergies: zod.string().optional(),
   healthNotes: zod.string().optional(),
+  garminEmail: zod.string().optional(),
+  garminPassword: zod.string().optional(),
+  garminPermission: zod.boolean().optional(),
   balanceDue: zod.number().optional(),
   hasActivityThisWeek: zod.boolean().optional(),
   isPlannedThisWeek: zod.boolean().optional(),
@@ -140,7 +146,6 @@ export const UpdateTraineeBody = zod.object({
   city: zod.string().optional(),
   birthdate: zod.coerce.date().optional(),
   runsPerWeek: zod.number().optional(),
-  maxHr: zod.number().optional(),
   hrZone4: zod.number().optional(),
   hrZone5a: zod.number().optional(),
   hrZone5c: zod.number().optional(),
@@ -158,6 +163,9 @@ export const UpdateTraineeBody = zod.object({
   medications: zod.string().optional(),
   allergies: zod.string().optional(),
   healthNotes: zod.string().optional(),
+  garminEmail: zod.string().optional(),
+  garminPassword: zod.string().optional(),
+  garminPermission: zod.boolean().optional(),
 });
 
 export const UpdateTraineeResponse = zod.object({
@@ -168,7 +176,6 @@ export const UpdateTraineeResponse = zod.object({
   city: zod.string().optional(),
   birthdate: zod.coerce.date().optional(),
   runsPerWeek: zod.number().optional(),
-  maxHr: zod.number().optional(),
   hrZone4: zod.number().optional(),
   hrZone5a: zod.number().optional(),
   hrZone5c: zod.number().optional(),
@@ -186,6 +193,9 @@ export const UpdateTraineeResponse = zod.object({
   medications: zod.string().optional(),
   allergies: zod.string().optional(),
   healthNotes: zod.string().optional(),
+  garminEmail: zod.string().optional(),
+  garminPassword: zod.string().optional(),
+  garminPermission: zod.boolean().optional(),
   balanceDue: zod.number().optional(),
   hasActivityThisWeek: zod.boolean().optional(),
   isPlannedThisWeek: zod.boolean().optional(),
@@ -297,12 +307,9 @@ export const ListSegmentsResponseItem = zod.object({
   name: zod.string(),
   type: zod.string(),
   typeId: zod.number().optional(),
-  template: zod.string().optional(),
+  template: zod.string(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
-  defaultDurationMinutes: zod.number().nullable().optional(),
-  defaultDistanceKm: zod.number().nullable().optional(),
-  defaultPace: zod.string().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 export const ListSegmentsResponse = zod.array(ListSegmentsResponseItem);
@@ -312,13 +319,10 @@ export const ListSegmentsResponse = zod.array(ListSegmentsResponseItem);
  */
 export const CreateSegmentBody = zod.object({
   name: zod.string(),
-  typeId: zod.number().nullable().optional(),
-  template: zod.string().optional(),
+  typeId: zod.number().optional(),
+  template: zod.string(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
-  defaultDurationMinutes: zod.number().nullable().optional(),
-  defaultDistanceKm: zod.number().nullable().optional(),
-  defaultPace: zod.string().nullable().optional(),
 });
 
 /**
@@ -333,12 +337,9 @@ export const GetSegmentResponse = zod.object({
   name: zod.string(),
   type: zod.string(),
   typeId: zod.number().optional(),
-  template: zod.string().optional(),
+  template: zod.string(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
-  defaultDurationMinutes: zod.number().nullable().optional(),
-  defaultDistanceKm: zod.number().nullable().optional(),
-  defaultPace: zod.string().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 
@@ -351,13 +352,10 @@ export const UpdateSegmentParams = zod.object({
 
 export const UpdateSegmentBody = zod.object({
   name: zod.string(),
-  typeId: zod.number().nullable().optional(),
-  template: zod.string().optional(),
+  typeId: zod.number().optional(),
+  template: zod.string(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
-  defaultDurationMinutes: zod.number().nullable().optional(),
-  defaultDistanceKm: zod.number().nullable().optional(),
-  defaultPace: zod.string().nullable().optional(),
 });
 
 export const UpdateSegmentResponse = zod.object({
@@ -365,12 +363,9 @@ export const UpdateSegmentResponse = zod.object({
   name: zod.string(),
   type: zod.string(),
   typeId: zod.number().optional(),
-  template: zod.string().optional(),
+  template: zod.string(),
   description: zod.string().optional(),
   isPersonal: zod.boolean().optional(),
-  defaultDurationMinutes: zod.number().nullable().optional(),
-  defaultDistanceKm: zod.number().nullable().optional(),
-  defaultPace: zod.string().nullable().optional(),
   createdAt: zod.coerce.date(),
 });
 
@@ -388,7 +383,6 @@ export const ListSegmentTypesResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   description: zod.string().optional(),
-  color: zod.string().nullable().optional(),
 });
 export const ListSegmentTypesResponse = zod.array(ListSegmentTypesResponseItem);
 
@@ -398,7 +392,6 @@ export const ListSegmentTypesResponse = zod.array(ListSegmentTypesResponseItem);
 export const CreateSegmentTypeBody = zod.object({
   name: zod.string(),
   description: zod.string().optional(),
-  color: zod.string().optional(),
 });
 
 /**
@@ -411,14 +404,12 @@ export const UpdateSegmentTypeParams = zod.object({
 export const UpdateSegmentTypeBody = zod.object({
   name: zod.string(),
   description: zod.string().optional(),
-  color: zod.string().optional(),
 });
 
 export const UpdateSegmentTypeResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   description: zod.string().optional(),
-  color: zod.string().nullable().optional(),
 });
 
 /**
@@ -433,7 +424,7 @@ export const DeleteSegmentTypeParams = zod.object({
  */
 export const ListWeekPlansQueryParams = zod.object({
   traineeId: zod.coerce.number().optional(),
-  weekStart: zod.string().optional(),
+  weekStart: zod.date().optional(),
 });
 
 export const ListWeekPlansResponseItem = zod.object({
@@ -452,23 +443,8 @@ export const ListWeekPlansResponse = zod.array(ListWeekPlansResponseItem);
  */
 export const CreateWeekPlanBody = zod.object({
   traineeId: zod.number(),
-  weekStart: zod.string(),
+  weekStart: zod.coerce.date(),
   notes: zod.string().optional(),
-  runs: zod.array(zod.object({
-    name: zod.string().optional(),
-    runType: zod.string(),
-    order: zod.number(),
-    segmentIds: zod.array(zod.number()).optional(),
-    segments: zod.array(zod.object({
-      segmentId: zod.number().optional(),
-      resolvedText: zod.string().optional(),
-      segmentType: zod.string().nullable().optional(),
-      durationMinutes: zod.number().nullable().optional(),
-      distanceKm: zod.number().nullable().optional(),
-      pace: zod.string().nullable().optional(),
-      order: zod.number(),
-    })).optional(),
-  })).optional(),
 });
 
 /**
@@ -501,11 +477,6 @@ export const GetWeekPlanResponse = zod.object({
             segmentName: zod.string().optional(),
             segmentTemplate: zod.string().optional(),
             resolvedText: zod.string(),
-            segmentType: zod.string().nullable().optional(),
-            durationMinutes: zod.number().nullable().optional(),
-            distanceKm: zod.number().nullable().optional(),
-            pace: zod.string().nullable().optional(),
-            completed: zod.boolean(),
             order: zod.number(),
           }),
         )
@@ -524,7 +495,7 @@ export const UpdateWeekPlanParams = zod.object({
 
 export const UpdateWeekPlanBody = zod.object({
   traineeId: zod.number(),
-  weekStart: zod.string(),
+  weekStart: zod.coerce.date(),
   notes: zod.string().optional(),
 });
 
@@ -561,11 +532,6 @@ export const AddRunToWeekPlanBody = zod.object({
       zod.object({
         segmentId: zod.number().optional(),
         resolvedText: zod.string(),
-        segmentType: zod.string().nullable().optional(),
-        durationMinutes: zod.number().nullable().optional(),
-        distanceKm: zod.number().nullable().optional(),
-        pace: zod.string().nullable().optional(),
-        completed: zod.boolean().optional(),
         order: zod.number(),
       }),
     )
@@ -589,11 +555,6 @@ export const UpdateRunBody = zod.object({
       zod.object({
         segmentId: zod.number().optional(),
         resolvedText: zod.string(),
-        segmentType: zod.string().nullable().optional(),
-        durationMinutes: zod.number().nullable().optional(),
-        distanceKm: zod.number().nullable().optional(),
-        pace: zod.string().nullable().optional(),
-        completed: zod.boolean().optional(),
         order: zod.number(),
       }),
     )
@@ -615,11 +576,6 @@ export const UpdateRunResponse = zod.object({
         segmentName: zod.string().optional(),
         segmentTemplate: zod.string().optional(),
         resolvedText: zod.string(),
-        segmentType: zod.string().nullable().optional(),
-        durationMinutes: zod.number().nullable().optional(),
-        distanceKm: zod.number().nullable().optional(),
-        pace: zod.string().nullable().optional(),
-        completed: zod.boolean().optional(),
         order: zod.number(),
       }),
     )
@@ -764,6 +720,8 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
     zod.object({
       id: zod.number(),
       name: zod.string(),
+      phone: zod.string().optional(),
+      email: zod.string().optional(),
       city: zod.string().optional(),
       birthdate: zod.coerce.date().optional(),
       runsPerWeek: zod.number().optional(),
@@ -779,6 +737,14 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
       planType: zod.enum(["free", "paid"]),
       planFinishDate: zod.coerce.date().optional(),
       monthlyFee: zod.number().optional(),
+      heartCondition: zod.string().optional(),
+      medicalConditions: zod.string().optional(),
+      medications: zod.string().optional(),
+      allergies: zod.string().optional(),
+      healthNotes: zod.string().optional(),
+      garminEmail: zod.string().optional(),
+      garminPassword: zod.string().optional(),
+      garminPermission: zod.boolean().optional(),
       balanceDue: zod.number().optional(),
       hasActivityThisWeek: zod.boolean().optional(),
       isPlannedThisWeek: zod.boolean().optional(),
@@ -789,6 +755,8 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
     zod.object({
       id: zod.number(),
       name: zod.string(),
+      phone: zod.string().optional(),
+      email: zod.string().optional(),
       city: zod.string().optional(),
       birthdate: zod.coerce.date().optional(),
       runsPerWeek: zod.number().optional(),
@@ -804,6 +772,14 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
       planType: zod.enum(["free", "paid"]),
       planFinishDate: zod.coerce.date().optional(),
       monthlyFee: zod.number().optional(),
+      heartCondition: zod.string().optional(),
+      medicalConditions: zod.string().optional(),
+      medications: zod.string().optional(),
+      allergies: zod.string().optional(),
+      healthNotes: zod.string().optional(),
+      garminEmail: zod.string().optional(),
+      garminPassword: zod.string().optional(),
+      garminPermission: zod.boolean().optional(),
       balanceDue: zod.number().optional(),
       hasActivityThisWeek: zod.boolean().optional(),
       isPlannedThisWeek: zod.boolean().optional(),
@@ -814,6 +790,8 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
     zod.object({
       id: zod.number(),
       name: zod.string(),
+      phone: zod.string().optional(),
+      email: zod.string().optional(),
       city: zod.string().optional(),
       birthdate: zod.coerce.date().optional(),
       runsPerWeek: zod.number().optional(),
@@ -829,6 +807,14 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
       planType: zod.enum(["free", "paid"]),
       planFinishDate: zod.coerce.date().optional(),
       monthlyFee: zod.number().optional(),
+      heartCondition: zod.string().optional(),
+      medicalConditions: zod.string().optional(),
+      medications: zod.string().optional(),
+      allergies: zod.string().optional(),
+      healthNotes: zod.string().optional(),
+      garminEmail: zod.string().optional(),
+      garminPassword: zod.string().optional(),
+      garminPermission: zod.boolean().optional(),
       balanceDue: zod.number().optional(),
       hasActivityThisWeek: zod.boolean().optional(),
       isPlannedThisWeek: zod.boolean().optional(),
@@ -839,9 +825,31 @@ export const GetTraineesNeedingAttentionResponse = zod.object({
     zod.object({
       id: zod.number(),
       name: zod.string(),
+      phone: zod.string().optional(),
+      email: zod.string().optional(),
       city: zod.string().optional(),
+      birthdate: zod.coerce.date().optional(),
+      runsPerWeek: zod.number().optional(),
+      hrZone4: zod.number().optional(),
+      hrZone5a: zod.number().optional(),
+      hrZone5c: zod.number().optional(),
+      targetHr: zod.number().optional(),
+      targetSpeedFrom: zod.string().optional(),
+      targetSpeedTo: zod.string().optional(),
+      testDate: zod.coerce.date().optional(),
+      lactateThresholdHr: zod.number().optional(),
+      preferredPayment: zod.enum(["cash", "credit_card"]).optional(),
       planType: zod.enum(["free", "paid"]),
+      planFinishDate: zod.coerce.date().optional(),
       monthlyFee: zod.number().optional(),
+      heartCondition: zod.string().optional(),
+      medicalConditions: zod.string().optional(),
+      medications: zod.string().optional(),
+      allergies: zod.string().optional(),
+      healthNotes: zod.string().optional(),
+      garminEmail: zod.string().optional(),
+      garminPassword: zod.string().optional(),
+      garminPermission: zod.boolean().optional(),
       balanceDue: zod.number().optional(),
       hasActivityThisWeek: zod.boolean().optional(),
       isPlannedThisWeek: zod.boolean().optional(),
@@ -880,11 +888,6 @@ export const GetTraineeCurrentWeekPlanResponse = zod.object({
             segmentName: zod.string().optional(),
             segmentTemplate: zod.string().optional(),
             resolvedText: zod.string(),
-            segmentType: zod.string().nullable().optional(),
-            durationMinutes: zod.number().nullable().optional(),
-            distanceKm: zod.number().nullable().optional(),
-            pace: zod.string().nullable().optional(),
-            completed: zod.boolean(),
             order: zod.number(),
           }),
         )

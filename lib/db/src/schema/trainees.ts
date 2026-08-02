@@ -30,6 +30,9 @@ export const traineesTable = pgTable("trainees", {
   medications: text("medications"),
   allergies: text("allergies"),
   healthNotes: text("health_notes"),
+  garminEmail: text("garmin_email"),
+  garminPassword: text("garmin_password"),
+  garminPermission: boolean("garmin_permission").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

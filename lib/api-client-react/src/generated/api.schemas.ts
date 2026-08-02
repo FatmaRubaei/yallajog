@@ -37,7 +37,6 @@ export interface Trainee {
   city?: string;
   birthdate?: string;
   runsPerWeek?: number;
-  maxHr?: number;
   hrZone4?: number;
   hrZone5a?: number;
   hrZone5c?: number;
@@ -55,6 +54,9 @@ export interface Trainee {
   medications?: string;
   allergies?: string;
   healthNotes?: string;
+  garminEmail?: string;
+  garminPassword?: string;
+  garminPermission?: boolean;
   balanceDue?: number;
   hasActivityThisWeek?: boolean;
   isPlannedThisWeek?: boolean;
@@ -84,7 +86,6 @@ export interface CreateTraineeInput {
   city?: string;
   birthdate?: string;
   runsPerWeek?: number;
-  maxHr?: number;
   hrZone4?: number;
   hrZone5a?: number;
   hrZone5c?: number;
@@ -102,6 +103,9 @@ export interface CreateTraineeInput {
   medications?: string;
   allergies?: string;
   healthNotes?: string;
+  garminEmail?: string;
+  garminPassword?: string;
+  garminPermission?: boolean;
 }
 
 export type ContractPreferredPayment =

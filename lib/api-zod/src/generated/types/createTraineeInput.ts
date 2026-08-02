@@ -32,4 +32,7 @@ export interface CreateTraineeInput {
   medications?: string;
   allergies?: string;
   healthNotes?: string;
+  garminEmail?: string;
+  garminPassword?: string;
+  garminPermission?: boolean;
 }

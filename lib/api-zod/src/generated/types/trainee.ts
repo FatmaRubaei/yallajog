@@ -11,6 +11,8 @@ import type { TraineePreferredPayment } from "./traineePreferredPayment";
 export interface Trainee {
   id: number;
   name: string;
+  phone?: string;
+  email?: string;
   city?: string;
   birthdate?: Date;
   runsPerWeek?: number;
@@ -26,6 +28,14 @@ export interface Trainee {
   planType: TraineePlanType;
   planFinishDate?: Date;
   monthlyFee?: number;
+  heartCondition?: string;
+  medicalConditions?: string;
+  medications?: string;
+  allergies?: string;
+  healthNotes?: string;
+  garminEmail?: string;
+  garminPassword?: string;
+  garminPermission?: boolean;
   balanceDue?: number;
   hasActivityThisWeek?: boolean;
   isPlannedThisWeek?: boolean;

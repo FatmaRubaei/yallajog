@@ -879,6 +879,12 @@ components:
           type: string
         healthNotes:
           type: string
+        garminEmail:
+          type: string
+        garminPassword:
+          type: string
+        garminPermission:
+          type: boolean
         balanceDue:
           type: number
         hasActivityThisWeek:
@@ -948,6 +954,12 @@ components:
           type: string
         healthNotes:
           type: string
+        garminEmail:
+          type: string
+        garminPassword:
+          type: string
+        garminPermission:
+          type: boolean
       required:
         - name
         - planType

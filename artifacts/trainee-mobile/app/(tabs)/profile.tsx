@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   Platform,
@@ -9,11 +9,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Switch,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useTrainee } from "@/context/TraineeContext";
-import { useGetTrainee, useListTrainees } from "@workspace/api-client-react";
+import { useGetTrainee, useListTrainees, useUpdateTrainee } from "@workspace/api-client-react";
 import { LoadingView } from "@/components/LoadingView";
 
 function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
@@ -34,11 +36,29 @@ export default function ProfileScreen() {
   const [inputId, setInputId] = useState("");
   const [showSelector, setShowSelector] = useState(false);
 
-  const { data: trainee, isLoading } = useGetTrainee(
+  // Garmin credentials form state
+  const [garminEmail, setGarminEmail] = useState("");
+  const [garminPassword, setGarminPassword] = useState("");
+  const [garminPermission, setGarminPermission] = useState(false);
+  const [garminSaving, setGarminSaving] = useState(false);
+  const [garminSaved, setGarminSaved] = useState(false);
+  const [showGarminPassword, setShowGarminPassword] = useState(false);
+
+  const { data: trainee, isLoading, refetch } = useGetTrainee(
     traineeId ?? 0,
     { query: { enabled: !!traineeId } }
   );
   const { data: allTrainees } = useListTrainees({}, { query: { enabled: showSelector } });
+  const updateTrainee = useUpdateTrainee();
+
+  // Seed garmin form from loaded trainee
+  useEffect(() => {
+    if (trainee) {
+      setGarminEmail(trainee.garminEmail ?? "");
+      setGarminPassword(trainee.garminPassword ?? "");
+      setGarminPermission(trainee.garminPermission ?? false);
+    }
+  }, [trainee]);
 
   const topPad = Platform.OS === "web" ? insets.top + 67 : insets.top + 16;
   const btmPad = Platform.OS === "web" ? insets.bottom + 34 : insets.bottom;
@@ -59,6 +79,29 @@ export default function ProfileScreen() {
       { text: "Cancel", style: "cancel" },
       { text: "Remove", style: "destructive", onPress: () => setTraineeId(null) },
     ]);
+  }
+
+  async function handleSaveGarmin() {
+    if (!traineeId) return;
+    setGarminSaving(true);
+    setGarminSaved(false);
+    try {
+      await updateTrainee.mutateAsync({
+        id: traineeId,
+        data: {
+          garminEmail: garminEmail.trim() || undefined,
+          garminPassword: garminPassword || undefined,
+          garminPermission,
+        } as any,
+      });
+      await refetch();
+      setGarminSaved(true);
+      setTimeout(() => setGarminSaved(false), 2500);
+    } catch {
+      Alert.alert("Error", "Failed to save Garmin credentials. Please try again.");
+    } finally {
+      setGarminSaving(false);
+    }
   }
 
   if (traineeId && isLoading) return <LoadingView />;
@@ -163,6 +206,101 @@ export default function ProfileScreen() {
             <InfoRow label="Plan Finish" value={trainee.planFinishDate} />
           </View>
 
+          {/* ── Garmin Connect Section ── */}
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.garminHeader}>
+              <View style={styles.garminHeaderLeft}>
+                <Feather name="watch" size={16} color={colors.primary} />
+                <Text style={[styles.sectionTitle, { color: colors.mutedForeground, paddingHorizontal: 0, paddingVertical: 0 }]}>
+                  GARMIN CONNECT
+                </Text>
+              </View>
+              {trainee.garminEmail ? (
+                <View style={[styles.connectedBadge, { backgroundColor: colors.primary + "18" }]}>
+                  <Feather name="check-circle" size={12} color={colors.primary} />
+                  <Text style={[styles.connectedText, { color: colors.primary }]}>Saved</Text>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.garminForm}>
+              <Text style={[styles.garminDesc, { color: colors.mutedForeground }]}>
+                Save your Garmin Connect credentials so your trainer can push workouts directly to your Garmin account.
+              </Text>
+
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Garmin Email</Text>
+              <TextInput
+                style={[styles.input, styles.garminInput, { backgroundColor: colors.muted, color: colors.foreground, borderColor: colors.border }]}
+                value={garminEmail}
+                onChangeText={setGarminEmail}
+                placeholder="your@email.com"
+                placeholderTextColor={colors.mutedForeground}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Garmin Password</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, styles.garminInput, styles.passwordInput, { backgroundColor: colors.muted, color: colors.foreground, borderColor: colors.border }]}
+                  value={garminPassword}
+                  onChangeText={setGarminPassword}
+                  placeholder="Password"
+                  placeholderTextColor={colors.mutedForeground}
+                  secureTextEntry={!showGarminPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity
+                  style={[styles.eyeButton, { borderColor: colors.border, backgroundColor: colors.muted }]}
+                  onPress={() => setShowGarminPassword(v => !v)}
+                >
+                  <Feather name={showGarminPassword ? "eye-off" : "eye"} size={16} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Permission checkbox row */}
+              <View style={[styles.permissionRow, { borderColor: colors.border, backgroundColor: colors.muted + "88" }]}>
+                <Switch
+                  value={garminPermission}
+                  onValueChange={setGarminPermission}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor={garminPermission ? "#fff" : colors.mutedForeground}
+                />
+                <View style={styles.permissionText}>
+                  <Text style={[styles.permissionTitle, { color: colors.foreground }]}>
+                    Allow trainer to use my credentials
+                  </Text>
+                  <Text style={[styles.permissionDesc, { color: colors.mutedForeground }]}>
+                    Your trainer will be able to push and schedule workouts to your Garmin account on your behalf.
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  {
+                    backgroundColor: garminSaved ? colors.primary + "22" : colors.primary,
+                    opacity: garminSaving ? 0.7 : 1,
+                  },
+                ]}
+                onPress={handleSaveGarmin}
+                disabled={garminSaving}
+              >
+                {garminSaving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : garminSaved ? (
+                  <>
+                    <Feather name="check" size={15} color={colors.primary} />
+                    <Text style={[styles.saveButtonText, { color: colors.primary }]}>Saved</Text>
+                  </>
+                ) : (
+                  <Text style={[styles.saveButtonText, { color: colors.primaryForeground }]}>Save Garmin Credentials</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <TouchableOpacity
             style={[styles.logoutButton, { borderColor: colors.destructive }]}
             onPress={handleLogout}
@@ -255,4 +393,73 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoutText: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  // Garmin section
+  garminHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  garminHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  connectedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  connectedText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  garminForm: { paddingHorizontal: 14, paddingBottom: 16 },
+  garminDesc: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 19,
+    marginBottom: 14,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  garminInput: { marginTop: 0 },
+  passwordRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  passwordInput: { flex: 1 },
+  eyeButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  permissionRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 14,
+    marginBottom: 2,
+  },
+  permissionText: { flex: 1 },
+  permissionTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
+  permissionDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
+  saveButton: {
+    height: 48,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 14,
+    flexDirection: "row",
+    gap: 6,
+  },
+  saveButtonText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
