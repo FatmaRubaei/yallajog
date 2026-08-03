@@ -58,6 +58,9 @@ import {
   EyeOff,
   ShieldCheck,
   ShieldX,
+  MessageCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -445,6 +448,66 @@ function GarminCredentialsCard({ trainee, onSuccess }: { trainee: any; onSuccess
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ garminEmail: "", garminPassword: "", garminPermission: false });
   const [showPassword, setShowPassword] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
+  const cardBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+  async function generateFormLink(): Promise<string | null> {
+    setLinkLoading(true);
+    try {
+      const res = await fetch(`${cardBase}/api/garmin-form/generate`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ traineeId: trainee.id }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+      const { token } = await res.json();
+      const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+      return `${window.location.origin}${base}/garmin-form?token=${token}`;
+    } catch (e: any) {
+      toast({ title: "Could not generate link", description: e.message, variant: "destructive" });
+      return null;
+    } finally {
+      setLinkLoading(false);
+    }
+  }
+
+  async function handleCopyLink() {
+    const url = await generateFormLink();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Link copied to clipboard" });
+  }
+
+  async function handleSendWhatsApp() {
+    if (!trainee.phone) {
+      toast({ title: "No phone number", description: "Add a phone number to this trainee first.", variant: "destructive" });
+      return;
+    }
+    setSending(true);
+    const url = await generateFormLink();
+    if (!url) { setSending(false); return; }
+    try {
+      const firstName = (trainee.name ?? "").split(" ")[0] || "there";
+      const text = `Hi ${firstName}! Please fill in your Garmin Connect credentials using this secure link so your trainer can sync workouts to your watch:\n\n${url}\n\n(Link expires in 7 days)`;
+      const res = await fetch(`${cardBase}/api/trainer/whatsapp/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ traineeId: trainee.id, text }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to send");
+      toast({ title: "Message sent via WhatsApp ✓" });
+    } catch (e: any) {
+      toast({ title: "Could not send WhatsApp message", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  }
 
   function startEdit() {
     setForm({
@@ -495,9 +558,33 @@ function GarminCredentialsCard({ trainee, onSuccess }: { trainee: any; onSuccess
             </span>
           )}
           {!editing && (
-            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={startEdit}>
-              <Pencil className="h-3 w-3" /> {hasCredentials ? "Edit" : "Add"}
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                onClick={handleCopyLink}
+                disabled={linkLoading || copied}
+                title="Copy form link"
+              >
+                {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                {copied ? "Copied" : "Copy link"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                onClick={handleSendWhatsApp}
+                disabled={sending || linkLoading}
+                title="Send form via WhatsApp"
+              >
+                <MessageCircle className="h-3 w-3" />
+                {sending ? "Sending…" : "Send"}
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs" onClick={startEdit}>
+                <Pencil className="h-3 w-3" /> {hasCredentials ? "Edit" : "Add"}
+              </Button>
+            </>
           )}
         </div>
       </CardHeader>

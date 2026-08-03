@@ -13,6 +13,7 @@ import downloadRouter from "./download";
 import trainerWhatsAppRouter from "./trainer-whatsapp";
 import whatsAppWebhookRouter from "./whatsapp-webhook";
 import garminTestRouter from "./garmin-test";
+import { garminFormPublicRouter, garminFormAuthRouter } from "./garmin-form";
 import { requireAuth } from "../middleware/auth";
 
 const router = Router();
@@ -21,10 +22,12 @@ router.use(healthRouter);
 router.use(downloadRouter);
 router.use("/auth", authRouter);
 router.use(whatsAppWebhookRouter);
+router.use(garminFormPublicRouter);
 
 router.use(requireAuth);
 
 router.use(garminTestRouter);
+router.use(garminFormAuthRouter);
 router.use("/trainees", traineesRouter);
 router.use("/trainees/:id/contract", contractsRouter);
 router.use("/trainees/:id/transactions", transactionsRouter);

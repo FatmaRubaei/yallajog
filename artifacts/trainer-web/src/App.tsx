@@ -16,6 +16,7 @@ import EventList from "@/pages/events";
 import ControlPanel from "@/pages/control-panel";
 import GarminTestPage from "@/pages/garmin-test";
 import AuthPage from "@/pages/auth";
+import GarminFormPage from "@/pages/garmin-form";
 import { authMe, authLogout, type TrainerInfo } from "@/hooks/use-auth";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,18 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
+    );
+  }
+
+  // Public page: Garmin credentials form for trainees (no auth needed)
+  if (window.location.pathname.endsWith("/garmin-form")) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <GarminFormPage />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
     );
   }
 
