@@ -1,1 +1,2 @@
 - [Garmin lap.button fix](garmin-lap-button.md) — time/distance end conditions cause infinite loading on Garmin Connect mobile; lap.button is the only working condition.
+- [Production deployment procedure](production-deploy.md) — root's PM2 owns port 8080; always use `sudo pm2 restart trainer-api` to deploy; fatimah's PM2 is a dead end.
