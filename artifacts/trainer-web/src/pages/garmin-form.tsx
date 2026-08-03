@@ -31,7 +31,7 @@ export default function GarminFormPage() {
     e.preventDefault();
     setStatus("submitting");
     try {
-      const r = await fetch(`${BASE}/api/garmin-form/${token}`, {
+      const r = await fetch(`${BASE}/api/garmin-form/${token}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ garminEmail: email, garminPassword: password, garminPermission: permission }),

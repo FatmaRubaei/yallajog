@@ -55,8 +55,8 @@ garminFormPublicRouter.get("/garmin-form/:token", async (req, res) => {
   return res.json({ name: trainee.name });
 });
 
-/** POST /api/garmin-form/:token — trainee submits their credentials */
-garminFormPublicRouter.post("/garmin-form/:token", async (req, res) => {
+/** POST /api/garmin-form/:token/submit — trainee submits their credentials */
+garminFormPublicRouter.post("/garmin-form/:token/submit", async (req, res) => {
   const verified = verifyToken(req.params.token);
   if (!verified) return res.status(401).json({ error: "Invalid or expired link" });
 
