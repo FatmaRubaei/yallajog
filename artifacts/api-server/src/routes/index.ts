@@ -13,8 +13,12 @@ import downloadRouter from "./download";
 import trainerWhatsAppRouter from "./trainer-whatsapp";
 import whatsAppWebhookRouter from "./whatsapp-webhook";
 import garminTestRouter from "./garmin-test";
-import { garminFormPublicRouter, garminFormAuthRouter } from "./garmin-form";
+import { garminFormPublicRouter } from "./garmin-form";
+import { generateGarminFormToken } from "./garmin-form";
 import { requireAuth } from "../middleware/auth";
+import { db } from "@workspace/db";
+import { traineesTable } from "@workspace/db/schema";
+import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -27,7 +31,22 @@ router.use(garminFormPublicRouter);
 router.use(requireAuth);
 
 router.use(garminTestRouter);
-router.use(garminFormAuthRouter);
+
+/** POST /garmin-form/generate — generate a signed form link for a trainee */
+router.post("/garmin-form/generate", async (req: any, res: any) => {
+  const trainerId = req.trainerId as number;
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const traineeId = Number(body.traineeId);
+  if (!traineeId) return res.status(400).json({ error: "traineeId required" });
+  const [trainee] = await db
+    .select({ id: traineesTable.id })
+    .from(traineesTable)
+    .where(and(eq(traineesTable.id, traineeId), eq(traineesTable.trainerId, trainerId)));
+  if (!trainee) return res.status(404).json({ error: "Trainee not found" });
+  const token = generateGarminFormToken(trainee.id);
+  return res.json({ token });
+});
+
 router.use("/trainees", traineesRouter);
 router.use("/trainees/:id/contract", contractsRouter);
 router.use("/trainees/:id/transactions", transactionsRouter);
