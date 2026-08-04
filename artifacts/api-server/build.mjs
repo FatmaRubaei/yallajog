@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, readFile, writeFile } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -118,6 +118,18 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  // esbuild-plugin-pino bakes the absolute build-machine path into the bundle
+  // (e.g. "/home/runner/workspace/artifacts/api-server/dist"). Replace it with
+  // __dirname so the dist is portable to any deployment path.
+  const indexPath = path.join(distDir, "index.mjs");
+  let src = await readFile(indexPath, "utf8");
+  src = src.replace(
+    /const outputDir\s*=\s*["'`][^"'`]*["'`]/,
+    "const outputDir = __dirname"
+  );
+  await writeFile(indexPath, src, "utf8");
+  console.log("✓ Patched pino outputDir to use __dirname");
 }
 
 buildAll().catch((err) => {
