@@ -484,29 +484,15 @@ function GarminCredentialsCard({ trainee, onSuccess }: { trainee: any; onSuccess
   }
 
   async function handleSendWhatsApp() {
-    if (!trainee.phone) {
-      toast({ title: "No phone number", description: "Add a phone number to this trainee first.", variant: "destructive" });
-      return;
-    }
     setSending(true);
     const url = await generateFormLink();
     if (!url) { setSending(false); return; }
-    try {
-      const firstName = (trainee.name ?? "").split(" ")[0] || "there";
-      const text = `Hi ${firstName}! Please fill in your Garmin Connect credentials using this secure link so your trainer can sync workouts to your watch:\n\n${url}\n\n(Link expires in 7 days)`;
-      const res = await fetch(`${cardBase}/api/trainer/whatsapp/messages`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ traineeId: trainee.id, text }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to send");
-      toast({ title: "Message sent via WhatsApp ✓" });
-    } catch (e: any) {
-      toast({ title: "Could not send WhatsApp message", description: e.message, variant: "destructive" });
-    } finally {
-      setSending(false);
-    }
+    const firstName = (trainee.name ?? "").split(" ")[0] || "there";
+    const text = `Hi ${firstName}! Please fill in your Garmin Connect credentials using this secure link so your trainer can sync workouts to your watch:\n\n${url}\n\n(Link expires in 7 days)`;
+    const phone = (trainee.phone ?? "").replace(/\D/g, "");
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+    window.open(waUrl, "_blank");
+    setSending(false);
   }
 
   function startEdit() {
