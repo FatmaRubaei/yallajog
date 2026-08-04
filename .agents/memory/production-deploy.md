@@ -14,6 +14,12 @@ The production server at `185.227.108.185` has **two PM2 daemons**:
 - CWD: `/var/www/yallajog.com/yallajog/yallajog/artifacts/api-server`
 - Env file: `.env` in that directory (contains PORT, DATABASE_URL, SESSION_SECRET, NODE_ENV)
 
+## Critical: pino absolute path bug
+
+`esbuild-plugin-pino` bakes the absolute build-machine path (e.g. `/home/runner/workspace/artifacts/api-server/dist`) into `dist/index.mjs` as `const outputDir = "..."`. On the production server this path doesn't exist, causing `MODULE_NOT_FOUND` for `thread-stream-worker.mjs` and instant crash.
+
+**Fix already in `build.mjs`**: a post-build step replaces `const outputDir = "..."` with `const outputDir = __dirname`. This runs automatically on every build — no manual action needed.
+
 ## Correct deployment procedure
 
 1. Build locally in Replit workspace:
