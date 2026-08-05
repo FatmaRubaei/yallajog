@@ -152,29 +152,54 @@ router.post("/trainer/whatsapp/embedded-signup/complete", async (req, res) => {
 
   try {
     const accessToken = await exchangeEmbeddedSignupCode(code, metaConfig.appId, metaConfig.appSecret);
-    const resolvedAccount = await resolveEmbeddedSignupAccountSelection(accessToken, {
-      wabaId,
-      phoneNumberId,
-    });
-    const resolvedWabaId = resolvedAccount.wabaId;
-    const resolvedPhoneNumberId = resolvedAccount.phoneNumberId;
 
-    if (!resolvedWabaId || !resolvedPhoneNumberId) {
-      return res.status(400).json({ error: "Meta embedded signup did not return the expected WhatsApp IDs" });
+    // Resolve WABA and phone number IDs.
+    // If the client already provided them from the Meta popup FINISH event, use them
+    // directly — skip the Graph API resolution which can fail when the WABA has
+    // multiple phone numbers or the token lacks list permissions.
+    let resolvedWabaId: string;
+    let resolvedPhoneNumberId: string;
+    let resolvedBusinessName: string | null = null;
+    let resolvedDisplayPhone: string | null = null;
+    const setupNotes: string[] = [];
+
+    if (wabaId && phoneNumberId) {
+      resolvedWabaId = wabaId;
+      resolvedPhoneNumberId = phoneNumberId;
+    } else {
+      // Fall back to server-side resolution when client didn't send IDs
+      const resolvedAccount = await resolveEmbeddedSignupAccountSelection(accessToken, {
+        wabaId,
+        phoneNumberId,
+      });
+      if (!resolvedAccount.wabaId || !resolvedAccount.phoneNumberId) {
+        return res.status(400).json({ error: "Meta embedded signup did not return the expected WhatsApp IDs" });
+      }
+      resolvedWabaId = resolvedAccount.wabaId;
+      resolvedPhoneNumberId = resolvedAccount.phoneNumberId;
+      resolvedBusinessName = resolvedAccount.businessName;
+      resolvedDisplayPhone = resolvedAccount.displayPhoneNumber;
     }
 
-    const [waba, phoneNumber] = await Promise.all([
-      fetchMetaGraphObject<{ id?: string; name?: string }>(resolvedWabaId, ["id", "name"], accessToken),
-      fetchMetaGraphObject<{ id?: string; display_phone_number?: string; verified_name?: string }>(
-        resolvedPhoneNumberId,
-        ["id", "display_phone_number", "verified_name"],
-        accessToken,
-      ),
-    ]);
+    // Fetch display details — non-blocking; failure doesn't prevent token storage.
+    try {
+      const [waba, phoneNumber] = await Promise.all([
+        fetchMetaGraphObject<{ id?: string; name?: string }>(resolvedWabaId, ["id", "name"], accessToken),
+        fetchMetaGraphObject<{ id?: string; display_phone_number?: string; verified_name?: string }>(
+          resolvedPhoneNumberId,
+          ["id", "display_phone_number", "verified_name"],
+          accessToken,
+        ),
+      ]);
+      resolvedBusinessName = waba.name?.trim() || null;
+      resolvedDisplayPhone = phoneNumber.display_phone_number?.trim() || null;
+    } catch (err) {
+      setupNotes.push(`Could not fetch display details: ${err instanceof Error ? err.message : String(err)}`);
+      logger.warn({ trainerId, resolvedWabaId, err }, "Could not fetch WABA/phone display details");
+    }
 
     let webhookSubscribed = false;
     let phoneRegistered = false;
-    const setupNotes: string[] = [];
 
     try {
       webhookSubscribed = await subscribeEmbeddedSignupApp(resolvedWabaId, accessToken);
@@ -199,8 +224,8 @@ router.post("/trainer/whatsapp/embedded-signup/complete", async (req, res) => {
       whatsappConnectionStatus: connectionStatus,
       whatsappBusinessAccountId: resolvedWabaId,
       whatsappPhoneNumberId: resolvedPhoneNumberId,
-      whatsappDisplayPhoneNumber: phoneNumber.display_phone_number?.trim() || null,
-      whatsappBusinessName: (waba.name?.trim() || phoneNumber.verified_name?.trim() || null),
+      whatsappDisplayPhoneNumber: resolvedDisplayPhone,
+      whatsappBusinessName: resolvedBusinessName,
       whatsappAccessToken: accessToken,
       whatsappAccessTokenUpdatedAt: new Date(),
       whatsappWebhookSubscribed: webhookSubscribed,
@@ -217,8 +242,8 @@ router.post("/trainer/whatsapp/embedded-signup/complete", async (req, res) => {
       meta: {
         wabaId: resolvedWabaId,
         phoneNumberId: resolvedPhoneNumberId,
-        displayPhoneNumber: phoneNumber.display_phone_number?.trim() || null,
-        businessName: (waba.name?.trim() || phoneNumber.verified_name?.trim() || null),
+        displayPhoneNumber: resolvedDisplayPhone,
+        businessName: resolvedBusinessName,
         webhookSubscribed,
         phoneRegistered,
         setupNotes,
