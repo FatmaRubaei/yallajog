@@ -61,6 +61,7 @@ import {
   MessageCircle,
   Copy,
   Check,
+  X,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -818,16 +819,27 @@ function statusTick(status: string | null) {
   }
 }
 
-function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; traineePhone: string | null }) {
+function TraineeWhatsAppChat({
+  traineeId,
+  traineePhone,
+  traineeName,
+}: {
+  traineeId: number;
+  traineePhone: string | null;
+  traineeName?: string;
+}) {
   const { toast } = useToast();
+  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<WaMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
   const [canSend, setCanSend] = useState(false);
+  const [unread, setUnread] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const initialLoadDone = useRef(false);
+  const prevCountRef = useRef(0);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   async function fetchMessages() {
     try {
@@ -838,6 +850,11 @@ function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; t
           (a: WaMessage, b: WaMessage) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         setMessages(sorted);
+        if (!open) {
+          const incoming = sorted.filter((m: WaMessage) => m.direction === "incoming").length;
+          if (incoming > prevCountRef.current) setUnread(u => u + (incoming - prevCountRef.current));
+          prevCountRef.current = incoming;
+        }
       }
     } finally {
       setLoading(false);
@@ -861,11 +878,18 @@ function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; t
   }, [traineeId]);
 
   useEffect(() => {
-    if (!initialLoadDone.current) {
-      initialLoadDone.current = true;
-      return;
+    if (open) {
+      setUnread(0);
+      prevCountRef.current = messages.filter(m => m.direction === "incoming").length;
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        inputRef.current?.focus();
+      }, 80);
     }
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [open]);
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   async function handleSend() {
@@ -892,78 +916,112 @@ function TraineeWhatsAppChat({ traineeId, traineePhone }: { traineeId: number; t
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3 flex flex-row items-center gap-2">
-        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <CardTitle className="text-base">WhatsApp Chat</CardTitle>
-        {traineePhone && (
-          <span className="text-xs text-muted-foreground ms-auto">{traineePhone}</span>
-        )}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {!traineePhone && (
-          <p className="text-sm text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
-            Add a phone number to this trainee to enable WhatsApp messaging.
-          </p>
-        )}
-        <div className="border rounded-lg bg-muted/20 min-h-[260px] max-h-[360px] overflow-y-auto p-3 flex flex-col gap-2">
-          {loading ? (
-            <p className="text-sm text-muted-foreground text-center mt-10">Loading...</p>
-          ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 gap-2 text-muted-foreground">
-              <MessageSquare className="h-8 w-8 opacity-20" />
-              <p className="text-sm">No messages yet</p>
-            </div>
-          ) : (
-            messages.map((msg) => {
-              const isOut = msg.direction === "outgoing";
-              return (
-                <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${isOut ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-background border rounded-tl-sm"}`}>
-                    <p className="whitespace-pre-wrap break-words leading-snug">{msg.textBody ?? ""}</p>
-                    <p className={`text-xs mt-1 opacity-60 flex items-center gap-1 ${isOut ? "justify-end" : "justify-start"}`}>
-                      {formatMsgTime(isOut ? msg.sentAt : msg.receivedAt) || formatMsgTime(msg.createdAt)}
-                      {isOut && msg.status && (
-                        <span className="capitalize">{statusTick(msg.status)}</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              );
-            })
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {!canSend ? (
-          <p className="text-xs text-muted-foreground">
-            Connect WhatsApp in the Control Panel to send messages.
-          </p>
-        ) : !traineePhone ? (
-          <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
-            Add a phone number to this trainee's profile to send messages.
-          </p>
+    <>
+      {/* Floating toggle button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full shadow-lg bg-[#25D366] hover:bg-[#1ebe5d] active:scale-95 transition-all"
+        aria-label="Toggle WhatsApp chat"
+      >
+        {open ? (
+          <X className="h-6 w-6 text-white" />
         ) : (
-          <div className="flex gap-2 items-end">
-            <Textarea
-              className="flex-1 min-h-[52px] max-h-[120px] resize-none text-sm"
-              placeholder={`Message ${traineePhone}...`}
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-            />
-            <Button size="sm" className="h-9 px-3" onClick={handleSend} disabled={sending || !messageText.trim()}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+          <MessageSquare className="h-6 w-6 text-white" />
         )}
-      </CardContent>
-    </Card>
+        {!open && unread > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+
+      {/* Floating chat panel */}
+      {open && (
+        <div className="fixed bottom-24 right-6 z-50 w-[340px] sm:w-[380px] rounded-2xl shadow-2xl border bg-background flex flex-col overflow-hidden"
+          style={{ maxHeight: "calc(100vh - 120px)" }}>
+          {/* Header */}
+          <div className="flex items-center gap-2 px-4 py-3 bg-[#25D366]">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20">
+              <MessageSquare className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{traineeName ?? "WhatsApp Chat"}</p>
+              {traineePhone && <p className="text-xs text-white/75 truncate">{traineePhone}</p>}
+            </div>
+            <button onClick={() => setOpen(false)} className="text-white/80 hover:text-white p-1">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div
+            className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 bg-[#ece5dd] dark:bg-muted/40"
+            style={{ minHeight: 220, maxHeight: 400 }}
+          >
+            {loading ? (
+              <p className="text-sm text-muted-foreground text-center mt-10">Loading…</p>
+            ) : messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-2 text-muted-foreground">
+                <MessageSquare className="h-7 w-7 opacity-20" />
+                <p className="text-sm">No messages yet</p>
+              </div>
+            ) : (
+              messages.map((msg) => {
+                const isOut = msg.direction === "outgoing";
+                return (
+                  <div key={msg.id} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
+                      isOut
+                        ? "bg-[#dcf8c6] dark:bg-primary text-foreground dark:text-primary-foreground rounded-tr-sm"
+                        : "bg-white dark:bg-background border rounded-tl-sm"
+                    }`}>
+                      <p className="whitespace-pre-wrap break-words leading-snug">{msg.textBody ?? ""}</p>
+                      <p className={`text-[10px] mt-1 opacity-60 flex items-center gap-1 ${isOut ? "justify-end" : "justify-start"}`}>
+                        {formatMsgTime(isOut ? msg.sentAt : msg.receivedAt) || formatMsgTime(msg.createdAt)}
+                        {isOut && msg.status && <span>{statusTick(msg.status)}</span>}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="px-3 py-2 border-t bg-background">
+            {!canSend ? (
+              <p className="text-xs text-muted-foreground py-1 text-center">
+                Connect WhatsApp in the Control Panel to send messages.
+              </p>
+            ) : !traineePhone ? (
+              <p className="text-xs text-muted-foreground py-1 text-center">
+                Add a phone number to this trainee to enable messaging.
+              </p>
+            ) : (
+              <div className="flex gap-2 items-end">
+                <Textarea
+                  ref={inputRef}
+                  className="flex-1 min-h-[44px] max-h-[100px] resize-none text-sm"
+                  placeholder={`Message ${traineePhone}…`}
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                />
+                <Button size="sm" className="h-9 px-3 bg-[#25D366] hover:bg-[#1ebe5d] text-white" onClick={handleSend} disabled={sending || !messageText.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1136,8 +1194,6 @@ export default function TraineeProfile() {
         </CardContent>
       </Card>
 
-      {/* WhatsApp Chat */}
-      <TraineeWhatsAppChat traineeId={traineeId} traineePhone={trainee.phone ?? null} />
 
       {/* Billing + Transactions side by side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1192,6 +1248,13 @@ export default function TraineeProfile() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Floating WhatsApp chat */}
+      <TraineeWhatsAppChat
+        traineeId={traineeId}
+        traineePhone={trainee.phone ?? null}
+        traineeName={trainee.name ?? undefined}
+      />
     </div>
   );
 }
